@@ -4,13 +4,11 @@ go 1.23.0
 
 toolchain go1.23.2
 
-replace github.com/sdcio/config-server => /Users/henderiw/code/sdcio/config-server
-
 replace github.com/sdcio/data-server => /Users/henderiw/code/sdcio/data-server
 
 require (
 	github.com/henderiw/logger v0.0.0-20230911123436-8655829b1abe
-	github.com/sdcio/config-server v0.0.35
+	github.com/sdcio/config-server v0.0.39
 	github.com/sdcio/data-server v0.0.44
 	github.com/sdcio/schema-server v0.0.24
 	github.com/sdcio/sdc-protos v0.0.33
