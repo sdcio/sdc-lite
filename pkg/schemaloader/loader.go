@@ -2,13 +2,13 @@ package schemaloader
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	loader "github.com/sdcio/config-server/pkg/schema"
 	"github.com/sdcio/schema-server/pkg/store"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -54,7 +54,7 @@ func (r *SchemaLoader) LoadSchema(ctx context.Context, schemaConfigPath string) 
 		return nil, err
 	}
 	if !dirExists {
-		fmt.Println("loading...")
+		log.Info("loading...")
 		if err := schemaLoader.Load(ctx, schemacr.Spec.GetKey()); err != nil {
 			return nil, err
 		}
