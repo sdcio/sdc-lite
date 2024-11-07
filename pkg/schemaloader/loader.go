@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/henderiw/config-diff/pkg/utils"
 	loader "github.com/sdcio/config-server/pkg/schema"
 	"github.com/sdcio/schema-server/pkg/store"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
@@ -34,7 +35,7 @@ type SchemaLoader struct {
 }
 
 func (r *SchemaLoader) LoadSchema(ctx context.Context, schemaConfigPath string) (*sdcpb.CreateSchemaResponse, error) {
-	schemacr, err := getConfig(schemaConfigPath)
+	schemacr, err := utils.GetConfig(schemaConfigPath)
 	if err != nil {
 		return nil, err
 	}

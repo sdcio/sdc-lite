@@ -5,13 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	baseConfigFile = ""
-	inFormat       string
-	outFormat      string
-	outputAll      bool // !onlyNewOrUpdates
-)
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "config-diff",
@@ -23,11 +16,4 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringVarP(&baseConfigFile, "base-config", "b", "", "base config, usually running")
-	rootCmd.PersistentFlags().StringVarP(&outFormat, "in-format", "if", "json", "input format")
-	rootCmd.PersistentFlags().StringVarP(&inFormat, "out-format", "of", "json", "output format")
-	rootCmd.PersistentFlags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
 }
