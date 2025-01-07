@@ -3,9 +3,9 @@ package cmd
 import (
 	"context"
 
-	configdiff "github.com/henderiw/config-diff/pkg/config-diff"
-	"github.com/henderiw/config-diff/pkg/config-diff/config"
-	"github.com/henderiw/config-diff/pkg/utils"
+	configdiff "github.com/sdcio/config-diff/pkg/config-diff"
+	"github.com/sdcio/config-diff/pkg/config-diff/config"
+	"github.com/sdcio/config-diff/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
