@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"context"
+	"os"
 
-	configdiff "github.com/sdcio/config-diff/pkg/config-diff"
-	"github.com/sdcio/config-diff/pkg/config-diff/config"
+	"github.com/sdcio/config-diff/pkg/configdiff"
+	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,8 +17,9 @@ var (
 
 // SchemaLoadCmd represents the list command
 var SchemaLoadCmd = &cobra.Command{
-	Use:   "load",
-	Short: "load a schema",
+	Use:          "load",
+	Short:        "load a schema",
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		var c *config.Config
@@ -26,21 +28,41 @@ var SchemaLoadCmd = &cobra.Command{
 		ctx := context.Background()
 
 		opts := config.ConfigOpts{
-			config.WithSchemaDefinition(schemaDefinitionFile),
+			// config.WithSchemaDefinition(schemaDefinitionFile),
 			config.WithSchemaPathCleanup(schemaPathCleanup),
 		}
+
+		log.Infof("Schema - Loading Start")
 
 		c, err = config.NewConfig(opts)
 		if err != nil {
 			return err
 		}
 
-		cd, err = configdiff.NewConfigDiff(c)
+		ws := GetWorkspace()
+
+		cd, err = configdiff.NewConfigDiff(ctx, c, ws)
 		if err != nil {
 			return err
 		}
-		err = cd.DownloadSchema(ctx, schemaDefinitionFile)
-		return err
+
+		// read schema definition fron file
+		schemaDefinition, err := os.ReadFile(schemaDefinitionFile)
+		if err != nil {
+			return err
+		}
+
+		// download the given schema
+		err = cd.SchemaDownload(ctx, schemaDefinition)
+		if err != nil {
+			return err
+		}
+
+		err = ws.Persist()
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 }
 

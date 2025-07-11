@@ -9,10 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// SchemaListCmd represents the list command
-var SchemaListCmd = &cobra.Command{
-	Use:          "list",
-	Short:        "list available schemas",
+var includeDefaults bool
+
+// cconfigValidateCmd represents the validate command
+var configBlameCmd = &cobra.Command{
+	Use:          "blame",
+	Short:        "blame config",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -27,25 +29,24 @@ var SchemaListCmd = &cobra.Command{
 			return err
 		}
 
-		cd, err = configdiff.NewConfigDiff(ctx, c, GetWorkspace())
+		ws := GetWorkspace()
+		cd, err = configdiff.NewConfigDiff(ctx, c, ws)
 		if err != nil {
 			return err
 		}
 
-		schemas, err := cd.SchemasList(ctx)
+		blameresult, err := cd.TreeBlame(ctx, includeDefaults)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("Available Schemas:")
-		for _, s := range schemas {
-			fmt.Printf("Vendor: %s, Version: %s\n", s.GetVendor(), s.GetVersion())
-		}
+		fmt.Println(blameresult.ToString())
+
 		return nil
-
 	},
 }
 
 func init() {
-	schemaCmd.AddCommand(SchemaListCmd)
+	configCmd.AddCommand(configBlameCmd)
+	configBlameCmd.Flags().BoolVar(&includeDefaults, "include-defaults", false, "include the schema based default values in the output")
 }

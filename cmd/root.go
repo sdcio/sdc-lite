@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/sdcio/config-diff/pkg/configdiff/workspace"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,4 +17,8 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func GetWorkspace() workspace.WorkspaceInit {
+	return workspace.NewWorkspaceDisk()
 }

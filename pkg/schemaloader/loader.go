@@ -5,11 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/henderiw/config-diff/pkg/utils"
+	invv1alpha1 "github.com/sdcio/config-server/apis/inv/v1alpha1"
 	loader "github.com/sdcio/config-server/pkg/schema"
 	"github.com/sdcio/schema-server/pkg/store"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	log "github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -24,7 +25,6 @@ func New(schemastore store.Store) (*SchemaLoader, error) {
 	if err := os.MkdirAll(schemasPath, 0755|os.ModeDir); err != nil {
 		return nil, err
 	}
-
 	return &SchemaLoader{
 		schemastore: schemastore,
 	}, nil
@@ -35,8 +35,13 @@ type SchemaLoader struct {
 }
 
 func (r *SchemaLoader) LoadSchema(ctx context.Context, schemaConfigPath string) (*sdcpb.CreateSchemaResponse, error) {
-	schemacr, err := utils.GetConfig(schemaConfigPath)
+	b, err := os.ReadFile(schemaConfigPath)
 	if err != nil {
+		panic(err)
+	}
+
+	schema := &invv1alpha1.Schema{}
+	if err := yaml.Unmarshal(b, schema); err != nil {
 		return nil, err
 	}
 
@@ -49,14 +54,14 @@ func (r *SchemaLoader) LoadSchema(ctx context.Context, schemaConfigPath string) 
 		return nil, err
 	}
 
-	schemaLoader.AddRef(ctx, schemacr)
-	_, dirExists, err := schemaLoader.GetRef(ctx, schemacr.Spec.GetKey())
+	schemaLoader.AddRef(ctx, schema)
+	_, dirExists, err := schemaLoader.GetRef(ctx, schema.Spec.GetKey())
 	if err != nil {
 		return nil, err
 	}
 	if !dirExists {
 		log.Info("loading...")
-		if err := schemaLoader.Load(ctx, schemacr.Spec.GetKey()); err != nil {
+		if err := schemaLoader.Load(ctx, schema.Spec.GetKey()); err != nil {
 			return nil, err
 		}
 	}
@@ -64,11 +69,11 @@ func (r *SchemaLoader) LoadSchema(ctx context.Context, schemaConfigPath string) 
 	return r.schemastore.CreateSchema(ctx, &sdcpb.CreateSchemaRequest{
 		Schema: &sdcpb.Schema{
 			Name:    "",
-			Vendor:  schemacr.Spec.Provider,
-			Version: schemacr.Spec.Version,
+			Vendor:  schema.Spec.Provider,
+			Version: schema.Spec.Version,
 		},
-		File:      schemacr.Spec.GetNewSchemaBase(schemasPath).Models,
-		Directory: schemacr.Spec.GetNewSchemaBase(schemasPath).Includes,
-		Exclude:   schemacr.Spec.GetNewSchemaBase(schemasPath).Excludes,
+		File:      schema.Spec.GetNewSchemaBase(schemasPath).Models,
+		Directory: schema.Spec.GetNewSchemaBase(schemasPath).Includes,
+		Exclude:   schema.Spec.GetNewSchemaBase(schemasPath).Excludes,
 	})
 }

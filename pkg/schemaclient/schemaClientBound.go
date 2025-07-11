@@ -17,25 +17,39 @@ package schemaclient
 import (
 	"context"
 
-	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
-	"github.com/sdcio/schema-server/pkg/store"
 	schemaClient "github.com/sdcio/data-server/pkg/datastore/clients/schema"
+	"github.com/sdcio/schema-server/pkg/store"
+	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
 
 type SchemaClientBoundImpl struct {
 	schemastore store.Store
-	schemaRef *sdcpb.Schema
+	schemaRef   *sdcpb.Schema
 }
 
 func NewMemSchemaClientBound(schemastore store.Store, schemaRef *sdcpb.Schema) schemaClient.SchemaClientBound {
 	return &SchemaClientBoundImpl{
 		schemastore: schemastore,
-		schemaRef: schemaRef,
+		schemaRef:   schemaRef,
 	}
 }
 
-// GetSchema retrieves the schema for the given path
-func (r *SchemaClientBoundImpl) GetSchema(ctx context.Context, path *sdcpb.Path) (*sdcpb.GetSchemaResponse, error) {
+// GetSchemaSlicePath retrieves the schema for the given path
+func (r *SchemaClientBoundImpl) GetSchemaSlicePath(ctx context.Context, path []string) (*sdcpb.GetSchemaResponse, error) {
+	sdcpbPath, err := r.ToPath(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.schemastore.GetSchema(ctx, &sdcpb.GetSchemaRequest{
+		Schema:          r.schemaRef,
+		Path:            sdcpbPath,
+		WithDescription: false,
+	})
+}
+
+// GetSchemaSdcpbPath retrieves the schema for the given path
+func (r *SchemaClientBoundImpl) GetSchemaSdcpbPath(ctx context.Context, path *sdcpb.Path) (*sdcpb.GetSchemaResponse, error) {
 	return r.schemastore.GetSchema(ctx, &sdcpb.GetSchemaRequest{
 		Schema:          r.schemaRef,
 		Path:            path,
@@ -46,6 +60,7 @@ func (r *SchemaClientBoundImpl) GetSchema(ctx context.Context, path *sdcpb.Path)
 func (r *SchemaClientBoundImpl) ToPath(ctx context.Context, path []string) (*sdcpb.Path, error) {
 	tpr, err := r.schemastore.ToPath(ctx, &sdcpb.ToPathRequest{
 		PathElement: path,
+		Schema:      r.schemaRef,
 	})
 	if err != nil {
 		return nil, err

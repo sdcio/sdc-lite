@@ -9,8 +9,9 @@ var (
 
 // datastoreCmd represents the datastore command
 var schemaCmd = &cobra.Command{
-	Use:   "schema",
-	Short: "schema based actions",
+	Use:          "schema",
+	Short:        "schema based actions",
+	SilenceUsage: true,
 }
 
 func init() {
