@@ -30,17 +30,17 @@ var workspaceListCmd = &cobra.Command{
 			return err
 		}
 
-		workspaces, err := cd.WorkspacesList()
+		targets, err := cd.WorkspaceList()
 		if err != nil {
 			return err
 		}
 
-		if len(workspaces) == 0 {
-			fmt.Println("no workspaces found")
+		if len(targets) == 0 {
+			fmt.Println("no targets found")
 			return nil
 		}
 
-		fmt.Println(workspaces.String())
+		fmt.Println(targets.String())
 		return nil
 	},
 }

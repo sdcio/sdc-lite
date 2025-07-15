@@ -187,14 +187,14 @@ func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool) (*sdcp
 	return c.tree.BlameConfig(includeDefaults)
 }
 
-func (c *ConfigDiff) TreeLoadData(ctx context.Context, intentInfo *types.IntentInfo) error {
+func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) error {
 	var err error
 	var importer treeImporter.ImportConfigAdapter
 
-	switch intentInfo.GetFormat() {
+	switch intent.GetFormat() {
 	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
 		var j any
-		err = json.Unmarshal(intentInfo.GetData(), &j)
+		err = json.Unmarshal(intent.GetData(), &j)
 		if err != nil {
 			return err
 		}
@@ -202,7 +202,7 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intentInfo *types.IntentI
 
 	case types.ConfigFormatXml:
 		xmlDoc := etree.NewDocument()
-		err := xmlDoc.ReadFromBytes(intentInfo.GetData())
+		err := xmlDoc.ReadFromBytes(intent.GetData())
 		if err != nil {
 			return err
 		}
@@ -210,11 +210,11 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intentInfo *types.IntentI
 	}
 
 	// overwrite running intent with running prio
-	if strings.EqualFold(intentInfo.Name, tree.RunningIntentName) {
-		intentInfo.Prio = tree.RunningValuesPrio
+	if strings.EqualFold(intent.Name, tree.RunningIntentName) {
+		intent.Prio = tree.RunningValuesPrio
 	}
 
-	err = c.tree.ImportConfig(ctx, nil, importer, intentInfo.GetName(), intentInfo.GetPrio(), intentInfo.GetFlag())
+	err = c.tree.ImportConfig(ctx, nil, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
 	if err != nil {
 		return err
 	}

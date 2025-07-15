@@ -39,7 +39,7 @@ var configBlameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
+		fmt.Printf("Workspace: %s\n", workspaceName)
 		fmt.Println(blameresult.ToString())
 
 		return nil

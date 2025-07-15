@@ -11,7 +11,7 @@ var configCmd = &cobra.Command{
 	Short:        "config based actions",
 	SilenceUsage: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		optsP = append(optsP, config.WithSuccessfullSchemaLoad())
+		optsP = append(optsP, config.WithSuccessfullSchemaLoad(), config.WithWorkspaceName(workspaceName))
 	},
 }
 

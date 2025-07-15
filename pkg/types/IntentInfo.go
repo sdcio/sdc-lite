@@ -6,7 +6,7 @@ import (
 	dsTypes "github.com/sdcio/data-server/pkg/tree/types"
 )
 
-type IntentInfo struct {
+type Intent struct {
 	Name   string
 	Prio   int32
 	Flag   *dsTypes.UpdateInsertFlags
@@ -14,49 +14,49 @@ type IntentInfo struct {
 	Data   []byte
 }
 
-func NewIntentInfo(name string, prio int32, flag *dsTypes.UpdateInsertFlags) *IntentInfo {
-	return &IntentInfo{
+func NewIntent(name string, prio int32, flag *dsTypes.UpdateInsertFlags) *Intent {
+	return &Intent{
 		Name: name,
 		Prio: prio,
 		Flag: flag,
 	}
 }
 
-func (ii *IntentInfo) GetName() string {
+func (ii *Intent) GetName() string {
 	return ii.Name
 }
 
-func (ii *IntentInfo) GetPrio() int32 {
+func (ii *Intent) GetPrio() int32 {
 	return ii.Prio
 }
 
-func (ii *IntentInfo) GetFlag() *dsTypes.UpdateInsertFlags {
+func (ii *Intent) GetFlag() *dsTypes.UpdateInsertFlags {
 	return ii.Flag
 }
 
-func (ii *IntentInfo) GetData() []byte {
+func (ii *Intent) GetData() []byte {
 	return ii.Data
 }
 
-func (ii *IntentInfo) GetFormat() ConfigFormat {
+func (ii *Intent) GetFormat() ConfigFormat {
 	return ii.Format
 }
 
-func (ii *IntentInfo) SetData(format ConfigFormat, data []byte) *IntentInfo {
+func (ii *Intent) SetData(format ConfigFormat, data []byte) *Intent {
 	ii.Format = format
 	ii.Data = data
 	return ii
 }
 
-func (ii *IntentInfo) String() string {
+func (ii *Intent) String() string {
 	return fmt.Sprintf("Name: %s, Prio: %d, Flag: %s, Format: %s", ii.GetName(), ii.GetPrio(), ii.GetFlag(), ii.GetFormat())
 }
 
-type IntentInfos map[string]*IntentInfo
+type Intents map[string]*Intent
 
-func (i *IntentInfos) AddIntentInfo(ii *IntentInfo) {
+func (i *Intents) AddIntent(ii *Intent) {
 	if *i == nil {
-		*i = make(IntentInfos)
+		*i = make(Intents)
 	}
 	(*i)[ii.GetName()] = ii
 }

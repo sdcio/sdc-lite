@@ -51,8 +51,7 @@ var configLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		intentInfo := types.NewIntentInfo(intentName, priority, treetypes.NewUpdateInsertFlags())
+		intentInfo := types.NewIntent(intentName, priority, treetypes.NewUpdateInsertFlags())
 		intentInfo.SetData(configFormat, config)
 
 		err = cd.TreeLoadData(ctx, intentInfo)
@@ -64,8 +63,8 @@ var configLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		fmt.Printf("File: %s - %s - successfully loaded ", configurationFile, intentInfo)
+		fmt.Printf("Workspace: %s\n", workspaceName)
+		fmt.Printf("File: %s - %s - successfully loaded\n", configurationFile, intentInfo)
 
 		return nil
 	},

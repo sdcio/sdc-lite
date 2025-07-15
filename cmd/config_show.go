@@ -48,7 +48,7 @@ var configShowCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
+		fmt.Printf("Workspace: %s\n", workspaceName)
 		fmt.Println(data)
 
 		return nil

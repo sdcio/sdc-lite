@@ -48,7 +48,6 @@ var SchemaLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		// download the given schema
 		_, err = cd.SchemaDownload(ctx, schemaDefinition)
 		if err != nil {

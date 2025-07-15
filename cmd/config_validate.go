@@ -40,7 +40,7 @@ var configValidateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
+		fmt.Printf("Workspace: %s\n", workspaceName)
 		if len(valStats.GetCounter()) > 0 {
 			fmt.Println("Validations performed:")
 			indent := "  "

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
@@ -29,6 +30,7 @@ var workspaceRemoveCmd = &cobra.Command{
 			return err
 		}
 
+		fmt.Printf("Target: %s\n", c.WorkspaceName())
 		err = cd.WorkspaceRemove()
 		if err != nil {
 			return err
