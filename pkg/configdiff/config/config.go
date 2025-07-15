@@ -13,8 +13,6 @@ type Config struct {
 	schemaPath        string
 	schemaStorePath   string
 	downloadPath      string
-	workspacePath     string
-	SchemaDefPath     string
 	loglevel          string
 	schemaPathCleanup bool
 	validation        *config.Validation
@@ -61,10 +59,6 @@ func NewConfig(opts ConfigOpts) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = utils.CreateFolder(c.WorkspacePath())
-	if err != nil {
-		return nil, err
-	}
 
 	return c, nil
 }
@@ -88,13 +82,6 @@ func (c *Config) DownloadPath() string {
 		c.downloadPath = path.Join(c.cachePath, "downloads")
 	}
 	return c.downloadPath
-}
-
-func (c *Config) WorkspacePath() string {
-	if c.workspacePath == "" {
-		c.workspacePath = path.Join(c.cachePath, "workspace")
-	}
-	return c.workspacePath
 }
 
 func (c *Config) LogLevel() string {

@@ -22,30 +22,27 @@ var SchemaLoadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var c *config.Config
-		var cd *configdiff.ConfigDiff
 
 		ctx := context.Background()
+		log.Infof("Schema - Loading Start")
 
 		opts := config.ConfigOpts{
 			// config.WithSchemaDefinition(schemaDefinitionFile),
 			config.WithSchemaPathCleanup(schemaPathCleanup),
 		}
-
-		log.Infof("Schema - Loading Start")
-
-		c, err = config.NewConfig(opts)
+		c, err := config.NewConfigPersistent(opts, optsP)
 		if err != nil {
 			return err
 		}
 
-		ws := GetWorkspace()
-
-		cd, err = configdiff.NewConfigDiff(ctx, c, ws)
+		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
 		if err != nil {
 			return err
 		}
-
+		err = cd.InitWorkspace(ctx)
+		if err != nil {
+			return err
+		}
 		// read schema definition fron file
 		schemaDefinition, err := os.ReadFile(schemaDefinitionFile)
 		if err != nil {
@@ -53,12 +50,12 @@ var SchemaLoadCmd = &cobra.Command{
 		}
 
 		// download the given schema
-		err = cd.SchemaDownload(ctx, schemaDefinition)
+		_, err = cd.SchemaDownload(ctx, schemaDefinition)
 		if err != nil {
 			return err
 		}
 
-		err = ws.Persist()
+		err = cd.Persist(ctx)
 		if err != nil {
 			return err
 		}

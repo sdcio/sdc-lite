@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-
 	"github.com/sdcio/data-server/pkg/config"
 	"github.com/sirupsen/logrus"
 )
@@ -17,17 +15,6 @@ func WithLogLevel(loglevel string) ConfigOpt {
 			return nil
 		}
 		c.loglevel = loglevel
-		return nil
-	}
-}
-
-func WithSchemaDefinition(schemaDefinitionPath string) ConfigOpt {
-	return func(c *Config) error {
-		_, err := os.Stat(schemaDefinitionPath)
-		if err != nil {
-			return err
-		}
-		c.SchemaDefPath = schemaDefinitionPath
 		return nil
 	}
 }

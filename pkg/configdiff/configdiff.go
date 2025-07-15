@@ -9,7 +9,6 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
-	"github.com/sdcio/config-diff/pkg/configdiff/workspace"
 	"github.com/sdcio/config-diff/pkg/schemaclient"
 	"github.com/sdcio/config-diff/pkg/schemaloader"
 	"github.com/sdcio/config-diff/pkg/types"
@@ -30,12 +29,12 @@ import (
 
 type ConfigDiff struct {
 	config      *config.Config
-	workspace   workspace.Workspace
 	tree        *tree.RootEntry
+	schema      *sdcpb.Schema
 	schemaStore store.Store
 }
 
-func NewConfigDiff(ctx context.Context, c *config.Config, wInit workspace.WorkspaceInit) (*ConfigDiff, error) {
+func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
 	llevel, err := log.ParseLevel(c.LogLevel())
 	if err != nil {
 		return nil, err
@@ -43,18 +42,9 @@ func NewConfigDiff(ctx context.Context, c *config.Config, wInit workspace.Worksp
 	log.SetLevel(llevel)
 	log.SetOutput(os.Stderr)
 
-	w, err := wInit.Init(&workspace.WorkspaceInitParams{
-		WorkspaceBasePath: c.WorkspacePath(),
-	})
-	if err != nil {
-		return nil, err
-	}
 	cd := &ConfigDiff{
-		config:    c,
-		workspace: w,
+		config: c,
 	}
-	w.HooksEndpointSet(ctx, cd)
-
 	return cd, nil
 }
 
@@ -92,6 +82,10 @@ func (c *ConfigDiff) SchemaRemove(ctx context.Context, vendor string, version st
 	return err
 }
 
+func (c *ConfigDiff) HasSchema() bool {
+	return c.schema != nil
+}
+
 func (c *ConfigDiff) SchemasList(ctx context.Context) ([]*sdcpb.Schema, error) {
 	store, err := c.loadSchemaStore(ctx)
 	if err != nil {
@@ -105,34 +99,34 @@ func (c *ConfigDiff) SchemasList(ctx context.Context) ([]*sdcpb.Schema, error) {
 	return lsr.Schema, nil
 }
 
-func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte) error {
+func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
+	c.schema = s
+}
+
+func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
 	schemaStore, err := c.loadSchemaStore(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	schemaDef := &invv1alpha1.Schema{}
 	if err := yaml.Unmarshal(schemaDefinition, schemaDef); err != nil {
-		return err
+		return nil, err
 	}
+
+	// check if the schema already exists
+	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
 
 	sdcpbSchema := &sdcpb.Schema{
 		Name:    "",
 		Vendor:  schemaDef.Spec.Provider,
 		Version: schemaDef.Spec.Version,
 	}
-	// check if the schema already exists
-	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
 
 	// return in case of existence
 	if schemaExists {
 		log.Infof("Schema - Vendor: %s, Version: %s - Already Exists, Skip Loading", schemaDef.Spec.Provider, schemaDef.Spec.Version)
-		err = c.workspace.SchemaStore(ctx, sdcpbSchema)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return sdcpbSchema, nil
 	}
 
 	schemaLoader, err := loader.NewLoader(
@@ -141,18 +135,18 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 		schemaloader.NewNopResolver(),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	schemaLoader.AddRef(ctx, schemaDef)
 	_, dirExists, err := schemaLoader.GetRef(ctx, schemaDef.Spec.GetKey())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !dirExists {
 		log.Info("loading...")
 		if err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	rsp, err := schemaStore.CreateSchema(ctx, &sdcpb.CreateSchemaRequest{
@@ -162,44 +156,14 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 		Exclude:   schemaDef.Spec.GetNewSchemaBase(c.config.SchemasPath()).Excludes,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Infof("Schema - Vendor: %s, Version: %s - Loaded Successful", rsp.Schema.Vendor, rsp.Schema.Version)
 
-	err = c.workspace.SchemaStore(ctx, rsp.GetSchema())
-	if err != nil {
-		return err
-	}
+	c.SetSchema(sdcpbSchema)
 
 	// TODO: cleanup Schemas Path
-	return err
-}
-
-func (c *ConfigDiff) HookPostSchemaSet(ctx context.Context) error {
-	err := c.BuildRootTree(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = c.loadWorkspaceIntents(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *ConfigDiff) loadWorkspaceIntents(ctx context.Context) error {
-	intents, err := c.workspace.IntentsGet()
-	if err != nil {
-		return err
-	}
-	for _, intent := range intents {
-		err = c.TreeLoadData(ctx, intent)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return nil, err
 }
 
 func (c *ConfigDiff) BuildRootTree(ctx context.Context) error {
@@ -208,12 +172,7 @@ func (c *ConfigDiff) BuildRootTree(ctx context.Context) error {
 		return err
 	}
 
-	schemaId, err := c.workspace.SchemaGet(ctx)
-	if err != nil {
-		return err
-	}
-
-	scb := schemaclient.NewMemSchemaClientBound(schemaStore, schemaId)
+	scb := schemaclient.NewMemSchemaClientBound(schemaStore, c.schema)
 	tc := tree.NewTreeContext(scb, "")
 	t, err := tree.NewTreeRoot(ctx, tc)
 	if err != nil {
@@ -228,7 +187,7 @@ func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool) (*sdcp
 	return c.tree.BlameConfig(includeDefaults)
 }
 
-func (c *ConfigDiff) TreeLoadData(ctx context.Context, intentInfo *workspace.IntentInfo) error {
+func (c *ConfigDiff) TreeLoadData(ctx context.Context, intentInfo *types.IntentInfo) error {
 	var err error
 	var importer treeImporter.ImportConfigAdapter
 
@@ -259,8 +218,6 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intentInfo *workspace.Int
 	if err != nil {
 		return err
 	}
-
-	c.workspace.IntentStore(intentInfo)
 
 	return nil
 }
@@ -307,12 +264,11 @@ func (c *ConfigDiff) TreeGetOutput(ctx context.Context, format types.ConfigForma
 	return "", nil
 }
 
-func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, error) {
-
+func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStatOverall, error) {
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return c.tree.Validate(ctx, c.config.Validation()), nil
+	valResult, valStat := c.tree.Validate(ctx, c.config.Validation())
+	return valResult, valStat, nil
 }

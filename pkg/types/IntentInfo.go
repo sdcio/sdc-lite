@@ -1,7 +1,8 @@
-package workspace
+package types
 
 import (
-	"github.com/sdcio/config-diff/pkg/types"
+	"fmt"
+
 	dsTypes "github.com/sdcio/data-server/pkg/tree/types"
 )
 
@@ -9,7 +10,7 @@ type IntentInfo struct {
 	Name   string
 	Prio   int32
 	Flag   *dsTypes.UpdateInsertFlags
-	Format types.ConfigFormat
+	Format ConfigFormat
 	Data   []byte
 }
 
@@ -37,14 +38,25 @@ func (ii *IntentInfo) GetData() []byte {
 	return ii.Data
 }
 
-func (ii *IntentInfo) GetFormat() types.ConfigFormat {
+func (ii *IntentInfo) GetFormat() ConfigFormat {
 	return ii.Format
 }
 
-func (ii *IntentInfo) SetData(format types.ConfigFormat, data []byte) *IntentInfo {
+func (ii *IntentInfo) SetData(format ConfigFormat, data []byte) *IntentInfo {
 	ii.Format = format
 	ii.Data = data
 	return ii
 }
 
+func (ii *IntentInfo) String() string {
+	return fmt.Sprintf("Name: %s, Prio: %d, Flag: %s, Format: %s", ii.GetName(), ii.GetPrio(), ii.GetFlag(), ii.GetFormat())
+}
+
 type IntentInfos map[string]*IntentInfo
+
+func (i *IntentInfos) AddIntentInfo(ii *IntentInfo) {
+	if *i == nil {
+		*i = make(IntentInfos)
+	}
+	(*i)[ii.GetName()] = ii
+}

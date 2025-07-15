@@ -17,25 +17,23 @@ var SchemaRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var c *config.Config
-		var cd *configdiff.ConfigDiff
 
 		ctx := context.Background()
 
 		opts := config.ConfigOpts{}
-		c, err = config.NewConfig(opts)
+		c, err := config.NewConfigPersistent(opts, optsP)
 		if err != nil {
 			return err
 		}
 
 		log.Infof("Schema Remove")
-		cd, err = configdiff.NewConfigDiff(ctx, c, GetWorkspace())
+		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
 		if err != nil {
 			return err
 		}
 
 		if schemaDefinitionFile != "" {
-			schema, err := utils.GetConfig(schemaDefinitionFile)
+			schema, err := utils.GetSchemaConfig(schemaDefinitionFile)
 			if err != nil {
 				return err
 			}

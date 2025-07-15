@@ -2,19 +2,16 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/spf13/cobra"
 )
 
-var includeDefaults bool
-
-// cconfigValidateCmd represents the validate command
-var configBlameCmd = &cobra.Command{
-	Use:          "blame",
-	Short:        "blame config",
+// datastoreCmd represents the datastore command
+var workspaceRemoveCmd = &cobra.Command{
+	Use:          "remove",
+	Short:        "remove existing workspaces",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -31,22 +28,16 @@ var configBlameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
-		if err != nil {
-			return err
-		}
-		blameresult, err := cd.TreeBlame(ctx, includeDefaults)
-		if err != nil {
-			return err
-		}
 
-		fmt.Println(blameresult.ToString())
+		err = cd.WorkspaceRemove()
+		if err != nil {
+			return err
+		}
 
 		return nil
 	},
 }
 
 func init() {
-	configCmd.AddCommand(configBlameCmd)
-	configBlameCmd.Flags().BoolVar(&includeDefaults, "include-defaults", false, "include the schema based default values in the output")
+	workspaceCmd.AddCommand(workspaceRemoveCmd)
 }

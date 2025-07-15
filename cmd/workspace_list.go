@@ -9,43 +9,42 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// SchemaListCmd represents the list command
-var SchemaListCmd = &cobra.Command{
+// datastoreCmd represents the datastore command
+var workspaceListCmd = &cobra.Command{
 	Use:          "list",
-	Short:        "list available schemas",
+	Short:        "list existing workspaces",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var c *config.Config
-		var cd *configdiff.ConfigDiff
 
 		ctx := context.Background()
 
 		opts := config.ConfigOpts{}
-		c, err = config.NewConfig(opts)
+		c, err := config.NewConfigPersistent(opts, optsP)
 		if err != nil {
 			return err
 		}
 
-		cd, err = configdiff.NewConfigDiff(ctx, c)
+		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
 		if err != nil {
 			return err
 		}
 
-		schemas, err := cd.SchemasList(ctx)
+		workspaces, err := cd.WorkspacesList()
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("Available Schemas:")
-		for _, s := range schemas {
-			fmt.Printf("Vendor: %s, Version: %s\n", s.GetVendor(), s.GetVersion())
+		if len(workspaces) == 0 {
+			fmt.Println("no workspaces found")
+			return nil
 		}
+
+		fmt.Println(workspaces.String())
 		return nil
-
 	},
 }
 
 func init() {
-	schemaCmd.AddCommand(SchemaListCmd)
+	workspaceCmd.AddCommand(workspaceListCmd)
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
-	"github.com/sdcio/config-diff/pkg/configdiff/workspace"
 	"github.com/sdcio/config-diff/pkg/types"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
 	"github.com/spf13/cobra"
@@ -26,23 +25,23 @@ var configLoadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var c *config.Config
-		var cd *configdiff.ConfigDiff
 
 		ctx := context.Background()
 
 		opts := config.ConfigOpts{}
-		c, err = config.NewConfig(opts)
+		c, err := config.NewConfigPersistent(opts, optsP)
 		if err != nil {
 			return err
 		}
 
-		ws := GetWorkspace()
-		cd, err = configdiff.NewConfigDiff(ctx, c, ws)
+		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
 		if err != nil {
 			return err
 		}
-
+		err = cd.InitWorkspace(ctx)
+		if err != nil {
+			return err
+		}
 		configFormat, err := types.ParseConfigFormat(configurationFileFormatStr)
 		if err != nil {
 			return err
@@ -53,7 +52,7 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		intentInfo := workspace.NewIntentInfo(intentName, priority, treetypes.NewUpdateInsertFlags())
+		intentInfo := types.NewIntentInfo(intentName, priority, treetypes.NewUpdateInsertFlags())
 		intentInfo.SetData(configFormat, config)
 
 		err = cd.TreeLoadData(ctx, intentInfo)
@@ -61,10 +60,12 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		err = ws.Persist()
+		err = cd.Persist(ctx)
 		if err != nil {
 			return err
 		}
+
+		fmt.Printf("File: %s - %s - successfully loaded ", configurationFile, intentInfo)
 
 		return nil
 	},
