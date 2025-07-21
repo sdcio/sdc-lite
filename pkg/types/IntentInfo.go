@@ -7,11 +7,12 @@ import (
 )
 
 type Intent struct {
-	Name   string
-	Prio   int32
-	Flag   *dsTypes.UpdateInsertFlags
-	Format ConfigFormat
-	Data   []byte
+	Name     string
+	Prio     int32
+	BasePath string
+	Flag     *dsTypes.UpdateInsertFlags
+	Format   ConfigFormat
+	Data     []byte
 }
 
 func NewIntent(name string, prio int32, flag *dsTypes.UpdateInsertFlags) *Intent {
@@ -36,6 +37,15 @@ func (ii *Intent) GetFlag() *dsTypes.UpdateInsertFlags {
 
 func (ii *Intent) GetData() []byte {
 	return ii.Data
+}
+
+func (ii *Intent) GetBasePath() string {
+	return ii.BasePath
+}
+
+func (ii *Intent) SetBasePath(p string) *Intent {
+	ii.BasePath = p
+	return ii
 }
 
 func (ii *Intent) GetFormat() ConfigFormat {

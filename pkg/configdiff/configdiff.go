@@ -9,6 +9,7 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	"github.com/sdcio/config-diff/pkg/diff"
 	"github.com/sdcio/config-diff/pkg/schemaclient"
 	"github.com/sdcio/config-diff/pkg/schemaloader"
 	"github.com/sdcio/config-diff/pkg/types"
@@ -19,6 +20,7 @@ import (
 	treejson "github.com/sdcio/data-server/pkg/tree/importer/json"
 	treexml "github.com/sdcio/data-server/pkg/tree/importer/xml"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
+	"github.com/sdcio/data-server/pkg/utils"
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
@@ -48,6 +50,70 @@ func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
 	return cd, nil
 }
 
+func (c *ConfigDiff) CopyEmptyConfigDiff(ctx context.Context) (*ConfigDiff, error) {
+	result, err := NewConfigDiff(ctx, c.config)
+	if err != nil {
+		return nil, err
+	}
+	result.schema = c.schema
+	result.schemaStore = c.schemaStore
+	return result, nil
+}
+
+func (c *ConfigDiff) DiffWithRunning(ctx context.Context) error {
+	lvs := tree.LeafVariantSlice{}
+	lvs = c.tree.GetByOwner("running", lvs)
+
+	runningTree, err := c.newTreeRoot(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = runningTree.AddUpdatesRecursive(ctx, lvs.ToUpdateSlice(), treetypes.NewUpdateInsertFlags())
+	if err != nil {
+		return err
+	}
+	err = runningTree.FinishInsertionPhase(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = c.tree.FinishInsertionPhase(ctx)
+	if err != nil {
+		return err
+	}
+
+	jtree, err := c.tree.ToJson(false)
+	if err != nil {
+		return err
+	}
+
+	jrunTree, err := runningTree.ToJson(false)
+	if err != nil {
+		return err
+	}
+
+	runTreeByte, err := json.MarshalIndent(jrunTree, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	treeByte, err := json.MarshalIndent(jtree, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// diff := diff.GenerateContextDiffString(strings.Split(string(runTreeByte), "\n"), strings.Split(string(treeByte), "\n"), 2, true)
+	diff := diff.GenerateContextDiffString(strings.Split(string(runTreeByte), "\n"), strings.Split(string(treeByte), "\n"), 4, true)
+	fmt.Println("Diff result:\n", diff)
+
+	return nil
+}
+
+func (c *ConfigDiff) SetSchemaStore(s store.Store) {
+	c.schemaStore = s
+}
+
 func (c *ConfigDiff) loadSchemaStore(ctx context.Context) (store.Store, error) {
 	if c.schemaStore != nil {
 		return c.schemaStore, nil
@@ -60,6 +126,10 @@ func (c *ConfigDiff) loadSchemaStore(ctx context.Context) (store.Store, error) {
 	}
 	c.schemaStore = s
 	return s, nil
+}
+
+func (c *ConfigDiff) GetSchemaStore() store.Store {
+	return c.schemaStore
 }
 
 func (c *ConfigDiff) SchemaRemove(ctx context.Context, vendor string, version string) error {
@@ -166,21 +236,24 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 	return nil, err
 }
 
-func (c *ConfigDiff) BuildRootTree(ctx context.Context) error {
+func (c *ConfigDiff) newTreeRoot(ctx context.Context) (*tree.RootEntry, error) {
 	schemaStore, err := c.loadSchemaStore(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	scb := schemaclient.NewMemSchemaClientBound(schemaStore, c.schema)
 	tc := tree.NewTreeContext(scb, "")
 	t, err := tree.NewTreeRoot(ctx, tc)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.tree = t
+	return t, nil
+}
 
-	return nil
+func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
+	c.tree, err = c.newTreeRoot(ctx)
+	return err
 }
 
 func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool) (*sdcpb.BlameTreeElement, error) {
@@ -190,6 +263,13 @@ func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool) (*sdcp
 func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) error {
 	var err error
 	var importer treeImporter.ImportConfigAdapter
+
+	if c.tree == nil {
+		c.tree, err = c.newTreeRoot(ctx)
+		if err != nil {
+			return err
+		}
+	}
 
 	switch intent.GetFormat() {
 	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
@@ -214,7 +294,15 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 		intent.Prio = tree.RunningValuesPrio
 	}
 
-	err = c.tree.ImportConfig(ctx, nil, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
+	// convert base path to sdcpb.path
+	path, err := utils.ParsePath(intent.GetBasePath())
+	if err != nil {
+		return err
+	}
+	// convert sdcpb.path to string slice path
+	strSlicePath := utils.ToStrings(path, false, false)
+
+	err = c.tree.ImportConfig(ctx, strSlicePath, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
 	if err != nil {
 		return err
 	}
@@ -222,7 +310,7 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 	return nil
 }
 
-func (c *ConfigDiff) TreeGetOutput(ctx context.Context, format types.ConfigFormat, onlyNewOrUpdated bool) (string, error) {
+func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigFormat, onlyNewOrUpdated bool) (string, error) {
 	var err error
 	err = c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
@@ -262,6 +350,10 @@ func (c *ConfigDiff) TreeGetOutput(ctx context.Context, format types.ConfigForma
 		return result, nil
 	}
 	return "", nil
+}
+
+func (c *ConfigDiff) GetJson(onlyNewOrUpdated bool) (any, error) {
+	return c.tree.ToJson(onlyNewOrUpdated)
 }
 
 func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStatOverall, error) {

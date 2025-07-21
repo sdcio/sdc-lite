@@ -2,13 +2,16 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/sdcio/config-diff/pkg/types"
+	sdcConfig "github.com/sdcio/config-server/apis/config/v1alpha1"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
 	"github.com/spf13/cobra"
 )
@@ -34,11 +37,11 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
+		cdp, err := configdiff.NewConfigDiffPersistence(ctx, c)
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
+		err = cdp.InitWorkspace(ctx)
 		if err != nil {
 			return err
 		}
@@ -46,25 +49,81 @@ var configLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		// read config from file
-		config, err := os.ReadFile(configurationFile)
-		if err != nil {
-			return err
-		}
-		intentInfo := types.NewIntent(intentName, priority, treetypes.NewUpdateInsertFlags())
-		intentInfo.SetData(configFormat, config)
 
-		err = cd.TreeLoadData(ctx, intentInfo)
+		var configByte []byte
+		// process the input, read from file or stdin
+		if configurationFile == "-" {
+			// read from stdin
+			configByte, err = io.ReadAll(os.Stdin)
+			if err != nil {
+				return err
+			}
+		} else {
+			// read config from file
+			configByte, err = os.ReadFile(configurationFile)
+			if err != nil {
+				return err
+			}
+		}
+
+		var intent *types.Intent
+
+		switch configFormat {
+		case types.ConfigFormatJson, types.ConfigFormatJsonIetf, types.ConfigFormatXml:
+			intent = types.NewIntent(intentName, priority, treetypes.NewUpdateInsertFlags())
+			intent.SetData(configFormat, configByte)
+		case types.ConfigFormatSdc:
+			sdcC, err := sdcConfig.GetConfigFromFile(configurationFile)
+			if err != nil {
+				return err
+			}
+
+			// create a new config diff instance that we can use to aggregate the multiple path / values from the cr spec
+			cd, err := cdp.CopyEmptyConfigDiff(ctx)
+			if err != nil {
+				return err
+			}
+
+			// create the
+			intent = types.NewIntent(sdcC.Name, int32(sdcC.Spec.Priority), treetypes.NewUpdateInsertFlags())
+			for _, c := range sdcC.Spec.Config {
+				jsonConfigVal := c.Value.Raw
+				if err != nil {
+					return err
+				}
+				intent.SetData(types.ConfigFormatJson, jsonConfigVal).SetBasePath(c.Path)
+
+				err = cd.TreeLoadData(ctx, intent)
+				if err != nil {
+					return err
+				}
+			}
+
+			jsonConf, err := cd.GetJson(false)
+			if err != nil {
+				return err
+			}
+
+			jsonConfByte, err := json.Marshal(jsonConf)
+			if err != nil {
+				return err
+			}
+
+			intent = types.NewIntent(sdcC.Name, int32(sdcC.Spec.Priority), treetypes.NewUpdateInsertFlags())
+			intent.SetData(types.ConfigFormatJson, jsonConfByte)
+		}
+
+		err = cdp.TreeLoadData(ctx, intent)
 		if err != nil {
 			return err
 		}
 
-		err = cd.Persist(ctx)
+		err = cdp.Persist(ctx)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Workspace: %s\n", workspaceName)
-		fmt.Printf("File: %s - %s - successfully loaded\n", configurationFile, intentInfo)
+		os.Stderr.WriteString(fmt.Sprintf("Workspace: %s\n", workspaceName))
+		fmt.Printf("File: %s - %s - successfully loaded\n", configurationFile, intent)
 
 		return nil
 	},

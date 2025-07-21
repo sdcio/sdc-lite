@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -40,7 +41,7 @@ var configValidateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Workspace: %s\n", workspaceName)
+		os.Stderr.WriteString(fmt.Sprintf("Workspace: %s\n", workspaceName))
 		if len(valStats.GetCounter()) > 0 {
 			fmt.Println("Validations performed:")
 			indent := "  "

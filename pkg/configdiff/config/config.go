@@ -6,6 +6,7 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/utils"
 	"github.com/sdcio/data-server/pkg/config"
+	"github.com/sdcio/schema-server/pkg/store"
 )
 
 type Config struct {
@@ -16,6 +17,7 @@ type Config struct {
 	loglevel          string
 	schemaPathCleanup bool
 	validation        *config.Validation
+	schemaStore       store.Store
 }
 
 func NewConfig(opts ConfigOpts) (*Config, error) {
@@ -61,6 +63,10 @@ func NewConfig(opts ConfigOpts) (*Config, error) {
 	}
 
 	return c, nil
+}
+
+func (c *Config) GetSchemaStore() store.Store {
+	return c.schemaStore
 }
 
 func (c *Config) SchemasPath() string {

@@ -16,6 +16,8 @@ type ConfigPersistent struct {
 	workspaceBasePath           string
 	workspaceName               string
 	expectSchemaLoadsSuccessful bool
+	// schemaDefinitionFilePath if set, overwrites the default workspace layout
+	schemaDefinitionFilePath string
 }
 
 func NewConfigPersistent(opts ConfigOpts, optsP ConfigPersistentOpts) (*ConfigPersistent, error) {
@@ -55,6 +57,9 @@ func (c *ConfigPersistent) WorkspacePath() string {
 }
 
 func (c *ConfigPersistent) SchemaDefinitionFilePath() string {
+	if c.schemaDefinitionFilePath != "" {
+		return c.schemaDefinitionFilePath
+	}
 	return path.Join(c.WorkspacePath(), SchemaFileName)
 }
 

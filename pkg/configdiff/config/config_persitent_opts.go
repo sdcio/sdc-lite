@@ -29,3 +29,10 @@ func WithSuccessfullSchemaLoad() ConfigPersistentOpt {
 		return nil
 	}
 }
+
+func WithSchemaDefintionFilePath(schemaDefinitionFile string) ConfigPersistentOpt {
+	return func(c *ConfigPersistent) error {
+		c.schemaDefinitionFilePath = schemaDefinitionFile
+		return nil
+	}
+}

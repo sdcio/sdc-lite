@@ -23,7 +23,6 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
-
 }
 
 func init() {

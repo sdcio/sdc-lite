@@ -48,7 +48,7 @@ func (c *ConfigDiffPersistence) InitWorkspace(ctx context.Context) error {
 		return nil
 	}
 
-	err = c.BuildRootTree(ctx)
+	err = c.buildRootTree(ctx)
 	if err != nil {
 		return err
 	}

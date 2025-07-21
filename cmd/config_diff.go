@@ -7,19 +7,13 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
-	"github.com/sdcio/config-diff/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-var (
-	outFormatStr string
-	outputAll    bool // !onlyNewOrUpdates
-)
-
-// configLoadCmd represents the list command
-var configShowCmd = &cobra.Command{
-	Use:          "show",
-	Short:        "show config",
+// cconfigValidateCmd represents the validate command
+var configDiffCmd = &cobra.Command{
+	Use:          "diff",
+	Short:        "diff config with running",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -40,26 +34,18 @@ var configShowCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		outFormat, err := types.ParseConfigFormat(outFormatStr)
-		if err != nil {
-			return err
-		}
 
-		data, err := cd.TreeGetString(ctx, outFormat, !outputAll)
+		err = cd.DiffWithRunning(ctx)
 		if err != nil {
 			return err
 		}
 
 		os.Stderr.WriteString(fmt.Sprintf("Workspace: %s\n", workspaceName))
-		fmt.Println(data)
 
 		return nil
 	},
 }
 
 func init() {
-	configCmd.AddCommand(configShowCmd)
-
-	configCmd.PersistentFlags().StringVarP(&outFormatStr, "out-format", "o", "json", "output format")
-	configCmd.PersistentFlags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
+	configCmd.AddCommand(configDiffCmd)
 }

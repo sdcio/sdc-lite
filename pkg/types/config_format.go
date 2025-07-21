@@ -11,10 +11,11 @@ const (
 	ConfigFormatJson     ConfigFormat = "json"
 	ConfigFormatJsonIetf ConfigFormat = "json_ietf"
 	ConfigFormatXml      ConfigFormat = "xml"
+	ConfigFormatSdc      ConfigFormat = "sdc"
 )
 
 // ConfigFormatsList List of all the known config formats
-var ConfigFormatsList = ConfigFormats{ConfigFormatJson, ConfigFormatJsonIetf, ConfigFormatXml}
+var ConfigFormatsList = ConfigFormats{ConfigFormatJson, ConfigFormatJsonIetf, ConfigFormatXml, ConfigFormatSdc}
 
 func ParseConfigFormat(s string) (ConfigFormat, error) {
 	for _, n := range ConfigFormatsList {
