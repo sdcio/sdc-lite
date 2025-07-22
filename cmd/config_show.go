@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
@@ -23,6 +24,8 @@ var configShowCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+
+		fmt.Fprintf(os.Stderr, "Workspace: %s\n", workspaceName)
 
 		ctx := context.Background()
 
@@ -50,7 +53,6 @@ var configShowCmd = &cobra.Command{
 			return err
 		}
 
-		os.Stderr.WriteString(fmt.Sprintf("Workspace: %s\n", workspaceName))
 		fmt.Println(data)
 
 		return nil
@@ -59,7 +61,6 @@ var configShowCmd = &cobra.Command{
 
 func init() {
 	configCmd.AddCommand(configShowCmd)
-
-	configCmd.PersistentFlags().StringVarP(&outFormatStr, "out-format", "o", "json", "output format")
-	configCmd.PersistentFlags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
+	configShowCmd.PersistentFlags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
+	configShowCmd.PersistentFlags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
 }

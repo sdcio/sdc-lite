@@ -60,54 +60,69 @@ func (c *ConfigDiff) CopyEmptyConfigDiff(ctx context.Context) (*ConfigDiff, erro
 	return result, nil
 }
 
-func (c *ConfigDiff) DiffWithRunning(ctx context.Context) error {
+func (c *ConfigDiff) GetTreeJson(ctx context.Context) (any, error) {
+	// finish InsertionPhase on tree
+	err := c.tree.FinishInsertionPhase(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// retrive running Tree json
+	jTree, err := c.tree.ToJson(false)
+	if err != nil {
+		return nil, err
+	}
+	return jTree, nil
+}
+
+func (c *ConfigDiff) GetRunningJson(ctx context.Context) (any, error) {
 	lvs := tree.LeafVariantSlice{}
+	// export running intents
 	lvs = c.tree.GetByOwner("running", lvs)
 
+	// create a new Tree for running
 	runningTree, err := c.newTreeRoot(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
+	// add running to the new running tree
 	err = runningTree.AddUpdatesRecursive(ctx, lvs.ToUpdateSlice(), treetypes.NewUpdateInsertFlags())
 	if err != nil {
-		return err
+		return nil, err
 	}
+	// finish InsertionPhase on running tree
 	err = runningTree.FinishInsertionPhase(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = c.tree.FinishInsertionPhase(ctx)
-	if err != nil {
-		return err
-	}
-
-	jtree, err := c.tree.ToJson(false)
-	if err != nil {
-		return err
-	}
-
+	// retrive running Tree json
 	jrunTree, err := runningTree.ToJson(false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	runTreeByte, err := json.MarshalIndent(jrunTree, "", "  ")
+	return jrunTree, nil
+}
+
+func (c *ConfigDiff) GetDiff(ctx context.Context, dc *types.DiffConfig) (string, error) {
+
+	runningJson, err := c.GetRunningJson(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	treeByte, err := json.MarshalIndent(jtree, "", "  ")
+	treeJson, err := c.GetTreeJson(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// diff := diff.GenerateContextDiffString(strings.Split(string(runTreeByte), "\n"), strings.Split(string(treeByte), "\n"), 2, true)
-	diff := diff.GenerateContextDiffString(strings.Split(string(runTreeByte), "\n"), strings.Split(string(treeByte), "\n"), 4, true)
-	fmt.Println("Diff result:\n", diff)
+	differ, err := diff.NewDifferJson(runningJson, treeJson)
+	if err != nil {
+		return "", err
+	}
 
-	return nil
+	differ.SetConfig(dc)
+
+	return differ.Diff()
 }
 
 func (c *ConfigDiff) SetSchemaStore(s store.Store) {
@@ -348,6 +363,17 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 		}
 		result = string(byteDoc)
 		return result, nil
+	case types.ConfigFormatYaml:
+		var j any
+		j, err = c.tree.ToJson(onlyNewOrUpdated)
+		if err != nil {
+			return "", err
+		}
+		byteDoc, err := yaml.Marshal(j)
+		if err != nil {
+			return "", err
+		}
+		return string(byteDoc), nil
 	}
 	return "", nil
 }

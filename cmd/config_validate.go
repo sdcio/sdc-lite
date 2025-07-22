@@ -20,6 +20,7 @@ var configValidateCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		fmt.Fprintf(os.Stderr, "Workspace: %s\n", workspaceName)
 
 		ctx := context.Background()
 
@@ -41,7 +42,7 @@ var configValidateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		os.Stderr.WriteString(fmt.Sprintf("Workspace: %s\n", workspaceName))
+
 		if len(valStats.GetCounter()) > 0 {
 			fmt.Println("Validations performed:")
 			indent := "  "
