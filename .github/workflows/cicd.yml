@@ -16,7 +16,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v5
       - name: setup go
-        uses: actions/setup-go@v5.5.0
+        uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
       - name: run go test
@@ -32,13 +32,11 @@ jobs:
   pr-release:
     needs: unittest
     runs-on: ubuntu-latest
-    outputs:
-      dataversion: ${{ steps.image.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: setup go
-        uses: actions/setup-go@v5.5.0
+        uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
       - name: Run GoReleaser
