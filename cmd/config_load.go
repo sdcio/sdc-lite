@@ -30,7 +30,7 @@ var configLoadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		fmt.Fprintf(os.Stderr, "Workspace: %s\n", workspaceName)
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		ctx := context.Background()
 
@@ -44,7 +44,7 @@ var configLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cdp.InitWorkspace(ctx)
+		err = cdp.InitTargetFolder(ctx)
 		if err != nil {
 			return err
 		}
@@ -108,6 +108,7 @@ func init() {
 	configLoadCmd.Flags().StringVar(&configurationFileFormatStr, "file-format", "", fmt.Sprintf("The format of the config to be loaded [ %s ]", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configLoadCmd.Flags().Int32Var(&priority, "priority", 500, "The defined priority of the configuration")
 	configLoadCmd.Flags().StringVar(&intentName, "intent-name", "", "The name of the configuration intent")
+	EnableFlagAndDisableFileCompletion(configLoadCmd)
 }
 
 func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {

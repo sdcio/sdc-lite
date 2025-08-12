@@ -5,20 +5,20 @@ import "os"
 type ConfigPersistentOpts []ConfigPersistentOpt
 type ConfigPersistentOpt func(c *ConfigPersistent) error
 
-func WithWorkspaceBasePath(workspaceBasePath string) ConfigPersistentOpt {
+func WithTargetsBasePath(targetBasePath string) ConfigPersistentOpt {
 	return func(c *ConfigPersistent) error {
-		_, err := os.Stat(workspaceBasePath)
+		_, err := os.Stat(targetBasePath)
 		if err != nil {
 			return err
 		}
-		c.workspaceBasePath = workspaceBasePath
+		c.targetBasePath = targetBasePath
 		return nil
 	}
 }
 
-func WithWorkspaceName(workspacename string) ConfigPersistentOpt {
+func WithTargetName(targetName string) ConfigPersistentOpt {
 	return func(c *ConfigPersistent) error {
-		c.workspaceName = workspacename
+		c.targetName = targetName
 		return nil
 	}
 }

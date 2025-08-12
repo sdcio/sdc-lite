@@ -20,7 +20,7 @@ var configValidateCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		fmt.Fprintf(os.Stderr, "Workspace: %s\n", workspaceName)
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		ctx := context.Background()
 
@@ -34,7 +34,7 @@ var configValidateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
+		err = cd.InitTargetFolder(ctx)
 		if err != nil {
 			return err
 		}
@@ -92,4 +92,5 @@ var configValidateCmd = &cobra.Command{
 
 func init() {
 	configCmd.AddCommand(configValidateCmd)
+	EnableFlagAndDisableFileCompletion(configValidateCmd)
 }

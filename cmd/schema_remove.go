@@ -55,4 +55,5 @@ func init() {
 	SchemaRemoveCmd.PersistentFlags().StringVarP(&schemaDefinitionFile, "schema-def", "f", "", "The KRM that defined the schema")
 	SchemaRemoveCmd.PersistentFlags().StringVarP(&vendor, "vendor", "", "", "The vendor name of the schema")
 	SchemaRemoveCmd.PersistentFlags().StringVarP(&version, "version", "", "", "The version of the schema")
+	EnableFlagAndDisableFileCompletion(SchemaRemoveCmd)
 }

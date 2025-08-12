@@ -374,6 +374,8 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 			return "", err
 		}
 		return string(byteDoc), nil
+	case types.ConfigFormatSdc:
+		return "", fmt.Errorf("output in %s format not supported", string(format))
 	}
 	return "", nil
 }

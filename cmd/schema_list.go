@@ -48,4 +48,5 @@ var SchemaListCmd = &cobra.Command{
 
 func init() {
 	schemaCmd.AddCommand(SchemaListCmd)
+	EnableFlagAndDisableFileCompletion(SchemaListCmd)
 }

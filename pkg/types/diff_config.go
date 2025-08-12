@@ -36,6 +36,15 @@ func (d *DiffConfig) GetWidth() int {
 	return d.width
 }
 
+func (d *DiffConfig) SetConfig(c ConfigFormat) *DiffConfig {
+	d.format = c
+	return d
+}
+
+func (d *DiffConfig) GetFormat() ConfigFormat {
+	return d.format
+}
+
 func (d *DiffConfig) GetColor() bool {
 	return d.color
 }

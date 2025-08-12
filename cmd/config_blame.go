@@ -31,7 +31,7 @@ var configBlameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
+		err = cd.InitTargetFolder(ctx)
 		if err != nil {
 			return err
 		}
@@ -39,7 +39,7 @@ var configBlameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Workspace: %s\n", workspaceName)
+		fmt.Printf("Target: %s\n", targetName)
 		fmt.Println(blameresult.ToString())
 
 		return nil
@@ -49,4 +49,5 @@ var configBlameCmd = &cobra.Command{
 func init() {
 	configCmd.AddCommand(configBlameCmd)
 	configBlameCmd.Flags().BoolVar(&includeDefaults, "include-defaults", false, "include the schema based default values in the output")
+	EnableFlagAndDisableFileCompletion(configBlameCmd)
 }

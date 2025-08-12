@@ -11,12 +11,16 @@ const (
 	IntentFileGlob = "intent-*.json"
 )
 
+var (
+	ErrTargetUndefined = fmt.Errorf("target not defined")
+)
+
 type ConfigPersistent struct {
 	*Config
-	workspaceBasePath           string
-	workspaceName               string
+	targetBasePath              string
+	targetName                  string
 	expectSchemaLoadsSuccessful bool
-	// schemaDefinitionFilePath if set, overwrites the default workspace layout
+	// schemaDefinitionFilePath if set, overwrites the default target layout
 	schemaDefinitionFilePath string
 }
 
@@ -27,8 +31,7 @@ func NewConfigPersistent(opts ConfigOpts, optsP ConfigPersistentOpts) (*ConfigPe
 	}
 
 	cp := &ConfigPersistent{
-		Config:        c,
-		workspaceName: "default",
+		Config: c,
 	}
 
 	// apply the provided options
@@ -38,6 +41,7 @@ func NewConfigPersistent(opts ConfigOpts, optsP ConfigPersistentOpts) (*ConfigPe
 			return nil, err
 		}
 	}
+
 	return cp, nil
 }
 
@@ -45,32 +49,32 @@ func (c *ConfigPersistent) ExpectSchemaLoadsSuccessful() bool {
 	return c.expectSchemaLoadsSuccessful
 }
 
-func (c *ConfigPersistent) WorkspaceBasePath() string {
-	if c.workspaceBasePath == "" {
-		c.workspaceBasePath = path.Join(c.cachePath, "workspace")
+func (c *ConfigPersistent) TargetBasePath() string {
+	if c.targetBasePath == "" {
+		c.targetBasePath = path.Join(c.cachePath, "targets")
 	}
-	return c.workspaceBasePath
+	return c.targetBasePath
 }
 
-func (c *ConfigPersistent) WorkspacePath() string {
-	return path.Join(c.WorkspaceBasePath(), c.workspaceName)
+func (c *ConfigPersistent) TargetPath() string {
+	return path.Join(c.TargetBasePath(), c.targetName)
 }
 
 func (c *ConfigPersistent) SchemaDefinitionFilePath() string {
-	if c.schemaDefinitionFilePath != "" {
-		return c.schemaDefinitionFilePath
+	if c.schemaDefinitionFilePath == "" {
+		c.schemaDefinitionFilePath = path.Join(c.TargetPath(), SchemaFileName)
 	}
-	return path.Join(c.WorkspacePath(), SchemaFileName)
+	return c.schemaDefinitionFilePath
 }
 
 func (c *ConfigPersistent) ConfigFileGlob() string {
-	return path.Join(c.WorkspacePath(), IntentFileGlob)
+	return path.Join(c.TargetPath(), IntentFileGlob)
 }
 
 func (c *ConfigPersistent) ConfigFileName(intentName string) string {
-	return path.Join(c.WorkspacePath(), fmt.Sprintf(IntentFileName, intentName))
+	return path.Join(c.TargetPath(), fmt.Sprintf(IntentFileName, intentName))
 }
 
-func (c *ConfigPersistent) WorkspaceName() string {
-	return c.workspaceName
+func (c *ConfigPersistent) TargetName() string {
+	return c.targetName
 }

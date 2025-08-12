@@ -8,6 +8,7 @@ import (
 type ConfigFormat string
 
 const (
+	ConfigFormatUnknown  ConfigFormat = "unknown"
 	ConfigFormatJson     ConfigFormat = "json"
 	ConfigFormatJsonIetf ConfigFormat = "json_ietf"
 	ConfigFormatXml      ConfigFormat = "xml"

@@ -30,6 +30,7 @@ var SchemaLoadCmd = &cobra.Command{
 			// config.WithSchemaDefinition(schemaDefinitionFile),
 			config.WithSchemaPathCleanup(schemaPathCleanup),
 		}
+		optsP = append(optsP, config.WithTargetName(targetName))
 		c, err := config.NewConfigPersistent(opts, optsP)
 		if err != nil {
 			return err
@@ -39,7 +40,7 @@ var SchemaLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
+		err = cd.InitTargetFolder(ctx)
 		if err != nil {
 			return err
 		}
@@ -66,11 +67,16 @@ func init() {
 	schemaCmd.AddCommand(SchemaLoadCmd)
 	SchemaLoadCmd.PersistentFlags().StringVarP(&schemaDefinitionFile, "schema-def", "f", "", "The krm that defined the schema")
 	SchemaLoadCmd.PersistentFlags().BoolVarP(&schemaPathCleanup, "cleanup", "c", true, "Cleanup the Schemas directory after loading the schema")
+	EnableFlagAndDisableFileCompletion(SchemaLoadCmd)
 	err := SchemaLoadCmd.MarkPersistentFlagRequired("schema-def")
 	if err != nil {
 		log.Error(err)
 	}
 	err = SchemaLoadCmd.MarkPersistentFlagFilename("schema-def")
+	if err != nil {
+		log.Error(err)
+	}
+	err = AddTargetPersistentFlag(SchemaLoadCmd)
 	if err != nil {
 		log.Error(err)
 	}

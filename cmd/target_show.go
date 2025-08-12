@@ -6,13 +6,14 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // datastoreCmd represents the datastore command
-var workspaceRemoveCmd = &cobra.Command{
-	Use:          "remove",
-	Short:        "remove existing workspaces",
+var targetShowCmd = &cobra.Command{
+	Use:          "show",
+	Short:        "show existing target",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -30,16 +31,21 @@ var workspaceRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Target: %s\n", c.WorkspaceName())
-		err = cd.WorkspaceRemove()
+		target, err := cd.TargetGet(targetName)
 		if err != nil {
 			return err
 		}
 
+		fmt.Print(target.StringDetail())
 		return nil
 	},
 }
 
 func init() {
-	workspaceCmd.AddCommand(workspaceRemoveCmd)
+	targetCmd.AddCommand(targetShowCmd)
+	err := AddTargetPersistentFlag(targetShowCmd)
+	if err != nil {
+		log.Error(err)
+	}
+	EnableFlagAndDisableFileCompletion(targetShowCmd)
 }

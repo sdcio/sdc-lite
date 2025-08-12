@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	outFormatStr string
-	outputAll    bool // !onlyNewOrUpdates
+	outputAll bool // !onlyNewOrUpdates
 )
 
 // configLoadCmd represents the list command
@@ -22,10 +21,15 @@ var configShowCmd = &cobra.Command{
 	Use:          "show",
 	Short:        "show config",
 	SilenceUsage: true,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		outFormat, err = parseConfigFormat()
+		return err
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		fmt.Fprintf(os.Stderr, "Workspace: %s\n", workspaceName)
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		ctx := context.Background()
 
@@ -39,11 +43,7 @@ var configShowCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
-		if err != nil {
-			return err
-		}
-		outFormat, err := types.ParseConfigFormat(outFormatStr)
+		err = cd.InitTargetFolder(ctx)
 		if err != nil {
 			return err
 		}
@@ -61,6 +61,7 @@ var configShowCmd = &cobra.Command{
 
 func init() {
 	configCmd.AddCommand(configShowCmd)
-	configShowCmd.PersistentFlags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
-	configShowCmd.PersistentFlags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
+	configShowCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
+	configShowCmd.Flags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
+	EnableFlagAndDisableFileCompletion(configShowCmd)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/sdcio/config-diff/pkg/types"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,12 @@ var configDiffCmd = &cobra.Command{
 	SilenceUsage: true,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+
+		outFormat, err = parseConfigFormat()
+		if err != nil {
+			return err
+		}
+
 		difftype, err = types.ParseDiffType(difftypeStr)
 		if err != nil {
 			return err
@@ -37,7 +44,7 @@ var configDiffCmd = &cobra.Command{
 
 		ctx := context.Background()
 
-		fmt.Fprintf(os.Stderr, "Workspace: %s\n", workspaceName)
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)
@@ -49,12 +56,12 @@ var configDiffCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = cd.InitWorkspace(ctx)
+		err = cd.InitTargetFolder(ctx)
 		if err != nil {
 			return err
 		}
 
-		result, err := cd.GetDiff(ctx, types.NewDiffConfig(difftype).SetContextLines(contextLines).SetColor(!noColor))
+		result, err := cd.GetDiff(ctx, types.NewDiffConfig(difftype).SetContextLines(contextLines).SetColor(!noColor).SetConfig(types.ConfigFormat(outFormatStr)))
 		if err != nil {
 			return err
 		}
@@ -70,4 +77,21 @@ func init() {
 	configDiffCmd.Flags().StringVar(&difftypeStr, "type", "side-by-side-patch", fmt.Sprintf("difftype, one of %s", strings.Join(types.DiffTypeList.StringSlice(), ", ")))
 	configDiffCmd.Flags().IntVar(&contextLines, "context", 2, "number of context lines in patch based diffs")
 	configDiffCmd.Flags().BoolVar(&noColor, "no-color", false, "non colorized output")
+	configDiffCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
+	EnableFlagAndDisableFileCompletion(configDiffCmd)
+
+	// Register autocompletion for the diff type flag
+	err := configDiffCmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return types.DiffTypeList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		logrus.Error(err)
+	}
+	// Register autocompletion for the out format flag
+	err = configDiffCmd.RegisterFlagCompletionFunc("out-format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return types.ConfigFormatsList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		logrus.Error(err)
+	}
 }

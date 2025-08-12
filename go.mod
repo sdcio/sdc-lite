@@ -12,6 +12,7 @@ require (
 	github.com/sdcio/sdc-protos v0.0.44
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
+	github.com/spf13/pflag v1.0.6
 	golang.org/x/term v0.32.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
@@ -89,7 +90,6 @@ require (
 	github.com/sdcio/yang-parser v0.0.11 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.16 // indirect

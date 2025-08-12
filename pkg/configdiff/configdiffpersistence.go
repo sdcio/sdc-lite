@@ -7,14 +7,15 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/sdcio/config-diff/pkg/types"
+	"github.com/sdcio/config-diff/pkg/utils"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	log "github.com/sirupsen/logrus"
 )
 
 type ConfigDiffPersistence struct {
 	*ConfigDiff
-	config    *config.ConfigPersistent
-	workspace types.Workspace
+	config *config.ConfigPersistent
+	target types.Target
 }
 
 func NewConfigDiffPersistence(ctx context.Context, c *config.ConfigPersistent) (*ConfigDiffPersistence, error) {
@@ -27,18 +28,25 @@ func NewConfigDiffPersistence(ctx context.Context, c *config.ConfigPersistent) (
 		ConfigDiff: cd,
 		config:     c,
 	}
+
+	//  make sure the targets base folder exists
+	err = utils.CreateFolder(c.TargetBasePath())
+	if err != nil {
+		return nil, err
+	}
+
 	return cdp, nil
 }
 
-func (c *ConfigDiffPersistence) InitWorkspace(ctx context.Context) error {
+func (c *ConfigDiffPersistence) InitTargetFolder(ctx context.Context) error {
 
-	c.workspace = *types.NewWorkspace(c.config)
-	err := c.workspace.Create()
+	c.target = *types.NewTarget(c.config)
+	err := c.target.Create()
 	if err != nil {
 		return err
 	}
 
-	c.schema = c.workspace.GetSchema()
+	c.schema = c.target.GetSchema()
 	if c.schema == nil {
 		// if the schema is expected to be there, but it is not, throw an error
 		if c.config.ExpectSchemaLoadsSuccessful() {
@@ -62,8 +70,8 @@ func (c *ConfigDiffPersistence) InitWorkspace(ctx context.Context) error {
 }
 
 func (c *ConfigDiffPersistence) intentsLoad(ctx context.Context) (err error) {
-	// retrieve intents from workspace
-	intents := c.workspace.GetIntents()
+	// retrieve intents from target
+	intents := c.target.GetIntents()
 
 	// load each intent into the tree
 	for _, intent := range intents {
@@ -76,7 +84,7 @@ func (c *ConfigDiffPersistence) intentsLoad(ctx context.Context) (err error) {
 }
 
 func (c *ConfigDiffPersistence) TreeLoadData(ctx context.Context, intent *types.Intent) error {
-	err := c.workspace.AddIntent(intent)
+	err := c.target.AddIntent(intent)
 	if err != nil {
 		return err
 	}
@@ -87,35 +95,43 @@ func (c *ConfigDiffPersistence) SchemaDownload(ctx context.Context, schemaDefini
 	schema, err := c.ConfigDiff.SchemaDownload(ctx, schemaDefinition)
 
 	c.schema = schema
-	c.workspace.SetSchema(schema)
+	c.target.SetSchema(schema)
 
 	return c.schema, err
 }
 
-func (c *ConfigDiffPersistence) WorkspaceList() (types.Workspaces, error) {
-	entries, err := os.ReadDir(c.config.WorkspaceBasePath())
+func (c *ConfigDiffPersistence) TargetGet(name string) (*types.Target, error) {
+	targetConfig, err := config.NewConfigPersistent(config.ConfigOpts{}, config.ConfigPersistentOpts{config.WithTargetName(name), config.WithTargetsBasePath(c.config.TargetBasePath())})
+	if err != nil {
+		return nil, err
+	}
+	return types.NewTarget(targetConfig), nil
+}
+
+func (c *ConfigDiffPersistence) TargetList() (types.Targets, error) {
+	entries, err := os.ReadDir(c.config.TargetBasePath())
 	if err != nil {
 		return nil, err
 	}
 
-	result := types.Workspaces{}
+	result := types.Targets{}
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
 		}
 
-		workspaceConfig, err := config.NewConfigPersistent(config.ConfigOpts{}, config.ConfigPersistentOpts{config.WithWorkspaceName(e.Name()), config.WithWorkspaceBasePath(c.config.WorkspaceBasePath())})
+		targetConfig, err := config.NewConfigPersistent(config.ConfigOpts{}, config.ConfigPersistentOpts{config.WithTargetName(e.Name()), config.WithTargetsBasePath(c.config.TargetBasePath())})
 		if err != nil {
 			return nil, err
 		}
-		wsi := types.NewWorkspace(workspaceConfig)
+		wsi := types.NewTarget(targetConfig)
 		result.Add(wsi)
 	}
 	return result, nil
 }
 
-func (c *ConfigDiffPersistence) WorkspaceRemove() error {
-	path := c.config.WorkspacePath()
+func (c *ConfigDiffPersistence) TargetRemove() error {
+	path := c.config.TargetPath()
 
 	info, err := os.Stat(path)
 	if err != nil {
@@ -130,10 +146,10 @@ func (c *ConfigDiffPersistence) WorkspaceRemove() error {
 	if err != nil {
 		return err
 	}
-	log.Infof("successfully remove target %s", c.config.WorkspaceName())
+	log.Infof("target %s - successfully removed", c.config.TargetName())
 	return nil
 }
 
 func (c *ConfigDiffPersistence) Persist(ctx context.Context) error {
-	return c.workspace.Persist()
+	return c.target.Persist()
 }

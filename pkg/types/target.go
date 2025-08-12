@@ -12,14 +12,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type Workspace struct {
-	config  WorkspaceConfig
+type Target struct {
+	config  TargetConfig
 	schema  *sdcpb.Schema
 	intents Intents
 }
 
-func NewWorkspace(w WorkspaceConfig) *Workspace {
-	wi := &Workspace{
+func NewTarget(w TargetConfig) *Target {
+	wi := &Target{
 		config: w,
 	}
 	err := wi.loadSchemaInfo()
@@ -34,20 +34,20 @@ func NewWorkspace(w WorkspaceConfig) *Workspace {
 	return wi
 }
 
-func (wi *Workspace) Create() error {
-	err := utils.CreateFolder(wi.config.WorkspacePath())
+func (wi *Target) Create() error {
+	err := utils.CreateFolder(wi.config.TargetPath())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (wi *Workspace) AddIntent(i *Intent) error {
+func (wi *Target) AddIntent(i *Intent) error {
 	wi.intents.AddIntent(i)
 	return nil
 }
 
-func (wi *Workspace) DeleteIntent(name string) error {
+func (wi *Target) DeleteIntent(name string) error {
 	_, exists := wi.intents[name]
 	if !exists {
 		return fmt.Errorf("error deleting intent %s - not found", name)
@@ -60,11 +60,11 @@ func (wi *Workspace) DeleteIntent(name string) error {
 	return nil
 }
 
-func (wi *Workspace) GetIntents() Intents {
+func (wi *Target) GetIntents() Intents {
 	return wi.intents
 }
 
-func (wi *Workspace) schemaPersist() error {
+func (wi *Target) schemaPersist() error {
 	schemaByte, err := protojson.Marshal(wi.schema)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (wi *Workspace) schemaPersist() error {
 	return err
 }
 
-func (wi *Workspace) intentsPersist() error {
+func (wi *Target) intentsPersist() error {
 	for name, content := range wi.intents {
 		data, err := json.Marshal(content)
 		if err != nil {
@@ -88,11 +88,11 @@ func (wi *Workspace) intentsPersist() error {
 	return nil
 }
 
-func (wi *Workspace) SetSchema(s *sdcpb.Schema) {
+func (wi *Target) SetSchema(s *sdcpb.Schema) {
 	wi.schema = s
 }
 
-func (wi *Workspace) Persist() error {
+func (wi *Target) Persist() error {
 	err := wi.schemaPersist()
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (wi *Workspace) Persist() error {
 	return nil
 }
 
-func (wi *Workspace) loadIntent() error {
+func (wi *Target) loadIntent() error {
 	matches, err := filepath.Glob(wi.config.ConfigFileGlob())
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func (wi *Workspace) loadIntent() error {
 	return nil
 }
 
-func (wi *Workspace) loadSchemaInfo() (err error) {
+func (wi *Target) loadSchemaInfo() (err error) {
 	wi.schema, err = utils.SchemaLoadSdcpbSchemaFile(wi.config.SchemaDefinitionFilePath())
 	if err != nil {
 		return err
@@ -132,50 +132,62 @@ func (wi *Workspace) loadSchemaInfo() (err error) {
 	return nil
 }
 
-func (wi *Workspace) GetSchema() *sdcpb.Schema {
+func (wi *Target) GetSchema() *sdcpb.Schema {
 	return wi.schema
 }
 
-func (wi *Workspace) String() string {
+func (wi *Target) String() string {
+	return fmt.Sprintf("%s [ %s %s ]\n", wi.config.TargetName(), wi.schema.Vendor, wi.schema.Version)
+}
+
+func (wi *Target) StringDetail() string {
 	sb := strings.Builder{}
-	indentWorkspace := ""
-	indentWorkspaceInfos := fmt.Sprintf("%s  ", indentWorkspace)
-	indentWorkspaceIntent := fmt.Sprintf("%s  ", indentWorkspaceInfos)
-	indentWorkspaceIntentInfos := fmt.Sprintf("%s  ", indentWorkspaceIntent)
-	sb.WriteString(fmt.Sprintf("%sWorkspace: %s (%s)\n", indentWorkspace, wi.config.WorkspaceName(), wi.config.WorkspacePath()))
+	indentTarget := ""
+	indentTargetInfos := fmt.Sprintf("%s  ", indentTarget)
+	indentTargetIntent := fmt.Sprintf("%s  ", indentTargetInfos)
+	indentTargetIntentInfos := fmt.Sprintf("%s  ", indentTargetIntent)
+	sb.WriteString(fmt.Sprintf("%sTarget: %s (%s)\n", indentTarget, wi.config.TargetName(), wi.config.TargetPath()))
 	if wi.schema != nil {
-		sb.WriteString(fmt.Sprintf("%sSchema:\n", indentWorkspaceIntent))
-		sb.WriteString(fmt.Sprintf("%sName: %s\n", indentWorkspaceIntentInfos, wi.schema.GetVendor()))
-		sb.WriteString(fmt.Sprintf("%sVersion: %s\n", indentWorkspaceIntentInfos, wi.schema.GetVersion()))
+		sb.WriteString(fmt.Sprintf("%sSchema:\n", indentTargetIntent))
+		sb.WriteString(fmt.Sprintf("%sName: %s\n", indentTargetIntentInfos, wi.schema.GetVendor()))
+		sb.WriteString(fmt.Sprintf("%sVersion: %s\n", indentTargetIntentInfos, wi.schema.GetVersion()))
 	}
 	for _, i := range wi.intents {
-		sb.WriteString(fmt.Sprintf("%sIntent: %s\n", indentWorkspaceIntent, i.GetName()))
-		sb.WriteString(fmt.Sprintf("%sPrio: %d\n", indentWorkspaceIntentInfos, i.GetPrio()))
-		sb.WriteString(fmt.Sprintf("%sFlag: %s\n", indentWorkspaceIntentInfos, i.GetFlag()))
-		sb.WriteString(fmt.Sprintf("%sFormat: %s\n", indentWorkspaceIntentInfos, i.GetFormat()))
+		sb.WriteString(fmt.Sprintf("%sIntent: %s\n", indentTargetIntent, i.GetName()))
+		sb.WriteString(fmt.Sprintf("%sPrio: %d\n", indentTargetIntentInfos, i.GetPrio()))
+		sb.WriteString(fmt.Sprintf("%sFlag: %s\n", indentTargetIntentInfos, i.GetFlag()))
+		sb.WriteString(fmt.Sprintf("%sFormat: %s\n", indentTargetIntentInfos, i.GetFormat()))
 	}
 
 	return sb.String()
 }
 
-type Workspaces []*Workspace
+type Targets []*Target
 
-func (wis *Workspaces) Add(w *Workspace) {
-	*wis = append(*wis, w)
+func (t *Targets) Add(w *Target) {
+	*t = append(*t, w)
 }
 
-func (wis *Workspaces) String() string {
+func (t Targets) String() string {
 	sb := &strings.Builder{}
-	for _, w := range *wis {
+	for _, w := range t {
 		sb.WriteString(w.String())
 	}
 	return sb.String()
 }
 
-type WorkspaceConfig interface {
-	WorkspaceName() string
+func (t Targets) StringDetail() string {
+	sb := &strings.Builder{}
+	for _, w := range t {
+		sb.WriteString(w.StringDetail())
+	}
+	return sb.String()
+}
+
+type TargetConfig interface {
+	TargetName() string
 	ConfigFileName(intentName string) string
 	ConfigFileGlob() string
 	SchemaDefinitionFilePath() string
-	WorkspacePath() string
+	TargetPath() string
 }
