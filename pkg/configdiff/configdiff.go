@@ -230,7 +230,7 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 	}
 	if !dirExists {
 		log.Info("loading...")
-		if err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
+		if _, err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
 			return nil, err
 		}
 	}
