@@ -1,0 +1,53 @@
+name: CI/CD Test per PR
+on:
+  workflow_dispatch:
+  pull_request:
+  pull_request_target:
+    types: [labeled]
+  push:
+    branches:
+      - "main"
+      - "!releases/**"
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v5
+      - name: setup go
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: 'go.mod'
+      - name: run go test
+        run: go test -cover -coverprofile=coverage.txt ./...
+        env:
+          CGO_ENABLED: 0
+          
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  pr-release:
+    needs: unittest
+    runs-on: ubuntu-latest
+    outputs:
+      dataversion: ${{ steps.image.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: setup go
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: 'go.mod'
+      - name: Run GoReleaser
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean -f .goreleaser.nightlies.yml --skip=validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.IPTECHARCH_GITHUB_PAT }}
+          PR: ${{ github.event.pull_request.number }}
