@@ -61,7 +61,7 @@ func (r *SchemaLoader) LoadSchema(ctx context.Context, schemaConfigPath string) 
 	}
 	if !dirExists {
 		log.Info("loading...")
-		if err := schemaLoader.Load(ctx, schema.Spec.GetKey()); err != nil {
+		if _, err := schemaLoader.Load(ctx, schema.Spec.GetKey()); err != nil {
 			return nil, err
 		}
 	}
