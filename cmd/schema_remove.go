@@ -37,15 +37,15 @@ var SchemaRemoveCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			vendor = schema.Spec.Provider
-			version = schema.Spec.Version
+			schemaVendor = schema.Spec.Provider
+			schemaVersion = schema.Spec.Version
 		}
 
-		err = cd.SchemaRemove(ctx, vendor, version)
+		err = cd.SchemaRemove(ctx, schemaVendor, schemaVersion)
 		if err != nil {
 			return err
 		}
-		log.Infof("Schema Vendor: %s, Version: %s - Removed Successful", vendor, version)
+		log.Infof("Schema Vendor: %s, Version: %s - Removed Successful", schemaVendor, schemaVersion)
 		return nil
 	},
 }
@@ -53,7 +53,7 @@ var SchemaRemoveCmd = &cobra.Command{
 func init() {
 	schemaCmd.AddCommand(SchemaRemoveCmd)
 	SchemaRemoveCmd.PersistentFlags().StringVarP(&schemaDefinitionFile, "schema-def", "f", "", "The KRM that defined the schema")
-	SchemaRemoveCmd.PersistentFlags().StringVarP(&vendor, "vendor", "", "", "The vendor name of the schema")
-	SchemaRemoveCmd.PersistentFlags().StringVarP(&version, "version", "", "", "The version of the schema")
+	SchemaRemoveCmd.PersistentFlags().StringVarP(&schemaVendor, "vendor", "", "", "The vendor name of the schema")
+	SchemaRemoveCmd.PersistentFlags().StringVarP(&schemaVersion, "version", "", "", "The version of the schema")
 	EnableFlagAndDisableFileCompletion(SchemaRemoveCmd)
 }

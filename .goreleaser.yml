@@ -20,7 +20,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
+      - -s -w -X github.com/sdcio/config-diff/cmd.version={{.Version}} -X github.com/sdcio/config-diff/cmd.commit={{.ShortCommit}}
     goos:
       - linux
     goarch:
@@ -34,8 +34,6 @@ archives:
       {{- .Arch  }}
 checksum:
   name_template: "checksums.txt"
-snapshot:
-  name_template: "{{ .Tag }}"
 changelog:
   use: github
   sort: asc

@@ -1,10 +1,44 @@
 #!/usr/bin/env bash
 set -e
 
+${USE_SUDO:="true"}
 REPO="sdcio/config-diff"
 INSTALL_DIR="/usr/local/bin"
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
+SHELL_NAME=$(basename "$SHELL")
+
+
+# runs the given command as root (detects if we are root already)
+runAsRoot() {
+    local CMD="$*"
+
+    if [ "$EUID" -ne 0 ] && [ "$USE_SUDO" = "true" ]; then
+        CMD="sudo $CMD"
+    fi
+
+    $CMD
+}
+
+download() {
+    if type "curl" &>/dev/null; then
+        curl -L "$URL" -o "$TARBALL"
+    elif type "wget" &>/dev/null; then
+        wget "$URL" -O "$TARBALL"
+    fi
+}
+
+# verifySupported checks that the os/arch combination is supported
+verifySupported() {
+    if ! type "curl" &>/dev/null && ! type "wget" &>/dev/null; then
+        echo "Either curl or wget is required"
+        exit 1
+    fi
+}
+
+
+
+verifySupported
 
 # Map architecture names to Go release format
 case "$ARCH" in
@@ -36,8 +70,8 @@ echo "📂 Extracting..."
 tar -xzf "$TARBALL"
 
 echo "🚀 Installing to $INSTALL_DIR..."
-sudo mv config-diff "$INSTALL_DIR/config-diff"
-sudo chmod +x "$INSTALL_DIR/config-diff"
+runAsRoot mv config-diff "$INSTALL_DIR/config-diff"
+runAsRoot chmod +x "$INSTALL_DIR/config-diff"
 
 # Cleanup
 rm "$TARBALL"
@@ -50,14 +84,19 @@ case "$SHELL_NAME" in
         COMPLETION_PATH="${HOME}/.bash_completion.d"
         mkdir -p "$COMPLETION_PATH"
         "$INSTALL_DIR/config-diff" completion bash > "$COMPLETION_PATH/config-diff"
-        echo "source $COMPLETION_PATH/config-diff" >> "${HOME}/.bashrc"
+        # Only append the source line if it doesn't already exist
+        if ! grep -Fxq "source $COMPLETION_PATH/config-diff" "${HOME}/.bashrc"; then
+            echo "source $COMPLETION_PATH/config-diff" >> "${HOME}/.bashrc"
+        fi
         ;;
     zsh)
         COMPLETION_PATH="${HOME}/.zsh/completions"
         mkdir -p "$COMPLETION_PATH"
         "$INSTALL_DIR/config-diff" completion zsh > "$COMPLETION_PATH/_config-diff"
-        echo "fpath=($COMPLETION_PATH \$fpath)" >> "${HOME}/.zshrc"
-        echo "autoload -Uz compinit && compinit" >> "${HOME}/.zshrc"
+        if ! grep -Fxq "fpath=($COMPLETION_PATH \$fpath)" "${HOME}/.zshrc"; then
+            echo "fpath=($COMPLETION_PATH \$fpath)" >> "${HOME}/.zshrc"
+            echo "autoload -Uz compinit && compinit" >> "${HOME}/.zshrc"
+        fi
         ;;
     fish)
         COMPLETION_PATH="${HOME}/.config/fish/completions"
@@ -72,3 +111,4 @@ esac
 echo "✅ config-diff installed successfully!"
 echo "ℹ️  Restart your shell or run 'source ~/.bashrc' / 'source ~/.zshrc' to enable completions."
 config-diff --version
+

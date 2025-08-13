@@ -3,8 +3,8 @@ package cmd
 import "github.com/spf13/cobra"
 
 var (
-	vendor  string
-	version string
+	schemaVendor  string
+	schemaVersion string
 )
 
 // datastoreCmd represents the datastore command
