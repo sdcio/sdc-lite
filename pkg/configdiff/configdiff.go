@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -27,7 +26,7 @@ import (
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 type ConfigDiff struct {
@@ -200,15 +199,14 @@ func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
 	c.schema = s
 }
 
-func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition io.ReadCloser) (*sdcpb.Schema, error) {
+func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
 	schemaStore, err := c.loadSchemaStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	schemaDef := &invv1alpha1.Schema{}
-	decoder := yaml.NewDecoder(schemaDefinition)
-	if err := decoder.Decode(&schemaDef); err != nil {
+	if err := yaml.Unmarshal(schemaDefinition, &schemaDef); err != nil {
 		return nil, err
 	}
 
@@ -243,7 +241,7 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition io.Rea
 	}
 	if !dirExists {
 		log.Info("loading...")
-		if err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
+		if _, err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
 			return nil, err
 		}
 	}

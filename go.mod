@@ -8,7 +8,7 @@ replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 
 require (
 	github.com/beevik/etree v1.5.1
-	github.com/sdcio/config-server v0.0.39
+	github.com/sdcio/config-server v0.0.53
 	github.com/sdcio/data-server v0.0.62
 	github.com/sdcio/schema-server v0.0.31
 	github.com/sdcio/sdc-protos v0.0.44
@@ -17,7 +17,6 @@ require (
 	github.com/spf13/pflag v1.0.6
 	golang.org/x/term v0.32.0
 	google.golang.org/protobuf v1.36.6
-	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.33.1
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -122,6 +121,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.33.0 // indirect
 	k8s.io/apiserver v0.33.0 // indirect

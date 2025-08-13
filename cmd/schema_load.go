@@ -50,13 +50,13 @@ var SchemaLoadCmd = &cobra.Command{
 			return err
 		}
 
-		schemaReader, err := fw.ReadCloser()
+		schemaBytes, err := fw.Bytes()
 		if err != nil {
 			return err
 		}
 
 		// download the given schema
-		_, err = cd.SchemaDownload(ctx, schemaReader)
+		_, err = cd.SchemaDownload(ctx, schemaBytes)
 		if err != nil {
 			return err
 		}
