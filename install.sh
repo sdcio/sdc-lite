@@ -42,5 +42,33 @@ sudo chmod +x "$INSTALL_DIR/config-diff"
 # Cleanup
 rm "$TARBALL"
 
+# Install completions
+echo "🔧 Setting up shell completions for $SHELL_NAME..."
+
+case "$SHELL_NAME" in
+    bash)
+        COMPLETION_PATH="${HOME}/.bash_completion.d"
+        mkdir -p "$COMPLETION_PATH"
+        "$INSTALL_DIR/config-diff" completion bash > "$COMPLETION_PATH/config-diff"
+        echo "source $COMPLETION_PATH/config-diff" >> "${HOME}/.bashrc"
+        ;;
+    zsh)
+        COMPLETION_PATH="${HOME}/.zsh/completions"
+        mkdir -p "$COMPLETION_PATH"
+        "$INSTALL_DIR/config-diff" completion zsh > "$COMPLETION_PATH/_config-diff"
+        echo "fpath=($COMPLETION_PATH \$fpath)" >> "${HOME}/.zshrc"
+        echo "autoload -Uz compinit && compinit" >> "${HOME}/.zshrc"
+        ;;
+    fish)
+        COMPLETION_PATH="${HOME}/.config/fish/completions"
+        mkdir -p "$COMPLETION_PATH"
+        "$INSTALL_DIR/config-diff" completion fish > "$COMPLETION_PATH/config-diff.fish"
+        ;;
+    *)
+        echo "⚠️  Shell completions not set up: unsupported shell ($SHELL_NAME)"
+        ;;
+esac
+
 echo "✅ config-diff installed successfully!"
+echo "ℹ️  Restart your shell or run 'source ~/.bashrc' / 'source ~/.zshrc' to enable completions."
 config-diff --version

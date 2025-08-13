@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"context"
-	"os"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	"github.com/sdcio/config-diff/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -44,13 +44,19 @@ var SchemaLoadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		// read schema definition fron file
-		schemaDefinition, err := os.ReadFile(schemaDefinitionFile)
+
+		fw := utils.NewFileWrapper(schemaDefinitionFile)
 		if err != nil {
 			return err
 		}
+
+		schemaReader, err := fw.ReadCloser()
+		if err != nil {
+			return err
+		}
+
 		// download the given schema
-		_, err = cd.SchemaDownload(ctx, schemaDefinition)
+		_, err = cd.SchemaDownload(ctx, schemaReader)
 		if err != nil {
 			return err
 		}

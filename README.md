@@ -1,7 +1,15 @@
 # config-diff
 
-A CLI tool to interact with NOS (Network Operating System) configurations based on YANG schemas.  
-It supports loading schemas, validating configurations, computing diffs, and performing various config management operations for targets.
+`config-diff` is a CLI tool to interact with network operating system (NOS) configurations based on YANG schemas.  
+It provides powerful capabilities for working with configurations — from schema management to validation — and also allows configuration format conversion.
+
+With `config-diff`, you can:
+- Load YANG schemas
+- Validate configurations against loaded schemas
+- Compare and inspect configuration differences
+- Blame resulting config to see the contributing intents
+- Convert configurations between formats** (e.g., load a config in `json_ietf` format, then output it as `xml`)
+
 
 ---
 
@@ -42,6 +50,62 @@ If you just want the latest main branch build:
 ```bash
 go install github.com/sdcio/config-diff@latest
 ```
+
+### Enabling Shell Completions
+
+`config-diff` provides tab-completion for commands, flags, and target names.
+
+After installation, you can enable completions for your shell:
+
+**Bash**
+    config-diff completion bash > ~/.bash_completion.d/config-diff
+    echo "source ~/.bash_completion.d/config-diff" >> ~/.bashrc
+    source ~/.bashrc
+
+**Zsh**
+    mkdir -p ~/.zsh/completions
+    config-diff completion zsh > ~/.zsh/completions/_config-diff
+    echo "fpath=(~/.zsh/completions $fpath)" >> ~/.zshrc
+    autoload -Uz compinit && compinit
+    source ~/.zshrc
+
+**Fish**
+    mkdir -p ~/.config/fish/completions
+    config-diff completion fish > ~/.config/fish/completions/config-diff.fish
+
+Tip: If you use the provided `install.sh` script, completions are installed automatically for Bash, Zsh, and Fish.
+
+---
+
+## Examples
+
+**Load a schema:**
+```bash
+config-diff schema load -t router1 -f schema.yaml
+```
+Creates a target by the name of router1, downloads the referenced schema data and assignes them to the target.
+
+> **IMPORTANT:** The schema.yaml is a schema definition file used by sdc. The file format is described here [sdc schema doc](https://docs.sdcio.dev/user-guide/configuration/schemas/). Example schema definitions for different vendors can be found here as well.
+
+
+**Show current configuration:**
+```bash
+config-diff config show -t router1 -o json
+```
+Output formats can also be `json_ietf` or `xml`.
+
+**Validate a config:**
+```bash
+config-diff config validate -t router1
+```
+
+**Diff config changes:**
+```bash
+config-diff config diff -t router1 --type patch 
+```
+
+
+
 
 ## Usage
 
@@ -152,27 +216,3 @@ Some commands share persistent flags:
 
 - `-t, --target string` – The target to use (**required**)
 - `-o, --out-format string` – Output format (`json`, `xml`, etc.)
-
----
-
-## Examples
-
-**Load a schema:**
-```bash
-config-diff schema load -t router1 -f schema.yaml
-```
-
-**Validate a config:**
-```bash
-config-diff config validate -t router1
-```
-
-**Diff config changes:**
-```bash
-config-diff config diff -t router1 --type side-by-side-patch --context 3
-```
-
-**Show current configuration:**
-```bash
-config-diff config show -t router1 -o json
-```

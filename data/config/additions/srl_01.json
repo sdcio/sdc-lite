@@ -3,7 +3,6 @@
     {
       "name": "ethernet-1/1",
       "admin-state": "enable",
-      "description": "intent1",
       "vlan-tagging": true,
       "subinterface": [
         {
@@ -13,28 +12,6 @@
             "encap": {
               "single-tagged": {
                 "vlan-id": 2
-              }
-            }
-          }
-        },
-        {
-          "index": 3,
-          "type": "bridged",
-          "vlan": {
-            "encap": {
-              "single-tagged": {
-                "vlan-id": 3
-              }
-            }
-          }
-        },
-        {
-          "index": 4,
-          "type": "bridged",
-          "vlan": {
-            "encap": {
-              "single-tagged": {
-                "vlan-id": 4
               }
             }
           }

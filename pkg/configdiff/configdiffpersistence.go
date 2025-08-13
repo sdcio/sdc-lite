@@ -3,6 +3,7 @@ package configdiff
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
@@ -91,7 +92,7 @@ func (c *ConfigDiffPersistence) TreeLoadData(ctx context.Context, intent *types.
 	return c.ConfigDiff.TreeLoadData(ctx, intent)
 }
 
-func (c *ConfigDiffPersistence) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
+func (c *ConfigDiffPersistence) SchemaDownload(ctx context.Context, schemaDefinition io.ReadCloser) (*sdcpb.Schema, error) {
 	schema, err := c.ConfigDiff.SchemaDownload(ctx, schemaDefinition)
 
 	c.schema = schema

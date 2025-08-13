@@ -194,8 +194,8 @@ github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWN
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sdcio/cache v0.0.38 h1:8meykZC/DAgzKI+R3GtZvTs0/OXWRCeNN5mxVKG0Ba8=
 github.com/sdcio/cache v0.0.38/go.mod h1:PHJd4pTmfFZBLdPohtXJAVBNmAKhhKdZHTi3MejGrk0=
-github.com/sdcio/config-server v0.0.53 h1:CR43yr+PD4iZ/Mt4s6eC3J19YNykyTuOEJ2saTf/i/I=
-github.com/sdcio/config-server v0.0.53/go.mod h1:P2MaVTE5ajwHoEXJBwcRGBCGIGZYFF9t0v6nKWz97bE=
+github.com/sdcio/config-server v0.0.39 h1:iBocqvh7STmCsJUvcbQKpGzvwvRt0ILg4dMp6SoKt/o=
+github.com/sdcio/config-server v0.0.39/go.mod h1:4cKZNM+NkrSaP4fjp7PuxB+DYZE0+GzEDwHgljTznXM=
 github.com/sdcio/data-server v0.0.62 h1:1nHjm8e+zC1O+7sK7g+tDF00p6ZQGXddyQqjj3YABLM=
 github.com/sdcio/data-server v0.0.62/go.mod h1:pDM51uL89Bo7mQXBcJc72vn4XxdKu5xInD+7o7E4L4Q=
 github.com/sdcio/goyang v1.6.2-2 h1:qfeUKBmoKpiKAruuEc3+V8wgHKP/n1jRDEnTy23knV8=

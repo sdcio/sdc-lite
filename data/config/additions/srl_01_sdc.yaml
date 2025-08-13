@@ -1,0 +1,19 @@
+apiVersion: config.sdcio.dev/v1alpha1
+kind: Config
+metadata:
+  name: test-orphan
+  namespace: default
+  labels:
+    config.sdcio.dev/targetName: dev1
+    config.sdcio.dev/targetNamespace: default
+spec:
+  lifecycle:
+    deletionPolicy: orphan
+  priority: 10
+  config:
+  - path: /
+    value:
+      interface:
+      - name: "system0"
+        admin-state: "enable"
+        description: "k8s-system0-dummy"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -188,14 +189,15 @@ func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
 	c.schema = s
 }
 
-func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
+func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition io.ReadCloser) (*sdcpb.Schema, error) {
 	schemaStore, err := c.loadSchemaStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	schemaDef := &invv1alpha1.Schema{}
-	if err := yaml.Unmarshal(schemaDefinition, schemaDef); err != nil {
+	decoder := yaml.NewDecoder(schemaDefinition)
+	if err := decoder.Decode(&schemaDef); err != nil {
 		return nil, err
 	}
 
@@ -230,7 +232,7 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 	}
 	if !dirExists {
 		log.Info("loading...")
-		if _, err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
+		if err := schemaLoader.Load(ctx, schemaDef.Spec.GetKey()); err != nil {
 			return nil, err
 		}
 	}

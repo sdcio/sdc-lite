@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/sdcio/config-diff/pkg/types"
+	"github.com/sdcio/config-diff/pkg/utils"
 	"github.com/sdcio/config-server/apis/config/v1alpha1"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
 	"github.com/spf13/cobra"
@@ -53,20 +53,10 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		var configByte []byte
-		// process the input, read from file or stdin
-		if configurationFile == "-" {
-			// read from stdin
-			configByte, err = io.ReadAll(os.Stdin)
-			if err != nil {
-				return err
-			}
-		} else {
-			// read config from file
-			configByte, err = os.ReadFile(configurationFile)
-			if err != nil {
-				return err
-			}
+		fw := utils.NewFileWrapper(configurationFile)
+		configByte, err := fw.Bytes()
+		if err != nil {
+			return err
 		}
 
 		var intent *types.Intent
@@ -112,43 +102,6 @@ func init() {
 }
 
 func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {
-	// // Set up scheme
-	// scheme := runtime.NewScheme()
-	// _ = v1alpha1.AddToScheme(scheme)
-
-	// // Setup decoder
-	// dec := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(configByte), 4096)
-	// serializer := k8sJson.NewYAMLSerializer(k8sJson.DefaultMetaFactory, scheme, scheme)
-
-	// for {
-	// 	// Dynamically decode into raw runtime.Object
-	// 	var rawObj runtime.RawExtension
-	// 	if err := dec.Decode(&rawObj); err != nil {
-	// 		if err.Error() == "EOF" {
-	// 			break
-	// 		}
-	// 		fmt.Fprintf(os.Stderr, "decode error: %v\n", err)
-	// 		break
-	// 	}
-
-	// 	obj, gvk, err := serializer.Decode(rawObj.Raw, nil, nil)
-	// 	if err != nil {
-	// 		fmt.Fprintf(os.Stderr, "serializer decode error: %v\n", err)
-	// 		continue
-	// 	}
-
-	// 	fmt.Printf("Loaded object of kind: %s\n", gvk.Kind)
-
-	// 	// Optionally: cast to your known types
-	// 	switch o := obj.(type) {
-	// 	case *v1alpha1.Config:
-	// 		fmt.Printf("Parsed Config: %+v\n", o.Spec)
-	// 	case *v1alpha1.ConfigSet:
-	// 		fmt.Printf()
-	// 	default:
-	// 		fmt.Printf("skipping unknown type: %s\n", obj.GetObjectKind().GroupVersionKind().String())
-	// 	}
-	// }
 	scheme := runtime.NewScheme()
 	if err := v1alpha1.AddToScheme(scheme); err != nil {
 		return nil, err

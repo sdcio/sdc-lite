@@ -37,3 +37,4 @@ tls.key
 tmp
 config-diff
 .vscode
+dist/
