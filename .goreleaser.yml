@@ -28,7 +28,7 @@ builds:
       - arm64
 archives:
   - name_template: >-
-      {{ .ProjectName }}_v
+      {{ .ProjectName }}_
       {{- .Version }}_
       {{- title .Os }}_
       {{- .Arch  }}
