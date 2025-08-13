@@ -8,8 +8,7 @@ With `config-diff`, you can:
 - Validate configurations against loaded schemas
 - Compare and inspect configuration differences
 - Blame resulting config to see the contributing intents
-- Convert configurations between formats** (e.g., load a config in `json_ietf` format, then output it as `xml`)
-
+- Convert configurations between formats (e.g., load a config in `json_ietf` format, then output it as `xml`)
 
 ---
 
@@ -81,30 +80,206 @@ Tip: If you use the provided `install.sh` script, completions are installed auto
 
 **Load a schema:**
 ```bash
-config-diff schema load -t router1 -f schema.yaml
+config-diff schema load -t router1 -f https://raw.githubusercontent.com/sdcio/config-server/refs/heads/main/example/schemas/schema-nokia-srl-24.10.1.yaml
 ```
 Creates a target by the name of router1, downloads the referenced schema data and assignes them to the target.
 
 > **IMPORTANT:** The schema.yaml is a schema definition file used by sdc. The file format is described here [sdc schema doc](https://docs.sdcio.dev/user-guide/configuration/schemas/). Example schema definitions for different vendors can be found here as well.
 
+**Load a baseline / running config**
+```bash
+config-diff config load -t router1 --file-format json --intent-name running --file https://raw.githubusercontent.com/sdcio/config-diff/refs/tags/v0.1.0/data/config/running/running_srl_01.json 
+```
+Output:
+```
+Target: router1
+File: https://raw.githubusercontent.com/sdcio/config-diff/refs/tags/v0.1.0/data/config/running/running_srl_01.json - Name: running, Prio: 2147483547, Flag: update, Format: json - successfully loaded
+```
+
+**Load config snippet:**
+```bash
+config-diff config load -t router1 --file https://raw.githubusercontent.com/sdcio/config-diff/refs/tags/v0.1.0/data/config/additions/srl_01.json --file-format json --intent-name config1 --priority 50
+```
+Output:
+```
+Target: router1
+File: data/config/additions/srl_01.json - Name: config1, Prio: 50, Flag: update, Format: json - successfully loaded
+```
+
+**Load sdc config intent**
+```bash
+config-diff config load -t router1 --file-format sdc  --file https://raw.githubusercontent.com/sdcio/config-diff/refs/tags/v0.1.0/data/config/additions/srl_01_sdc.yaml
+```
+Output:
+```
+Target: router1
+File: https://raw.githubusercontent.com/sdcio/config-diff/refs/tags/v0.1.0/data/config/additions/srl_01_sdc.yaml - Name: test-orphan, Prio: 10, Flag: update, Format: json - successfully loaded
+```
+
+**Show Target details:**
+```bash
+config-diff target show -t router1 
+```
+Output:
+```
+Target: router1 (/home/mava/.cache/config-diff/targets/router1)
+    Schema:
+      Name: srl.nokia.sdcio.dev
+      Version: 24.10.1
+    Intent: config1
+      Prio: 50
+      Flag: update
+      Format: json
+    Intent: running
+      Prio: 2147483547
+      Flag: update
+      Format: json
+    Intent: test-orphan
+      Prio: 10
+      Flag: update
+      Format: json
+```
 
 **Show current configuration:**
 ```bash
-config-diff config show -t router1 -o json
+config-diff config show -t router1 -o json -a
 ```
 Output formats can also be `json_ietf` or `xml`.
+If you want to see only addtions on top of running, remove the `-a` option.
+
+Output
+```
+Target: router1
+{
+ "interface": [
+  {
+   "description": "intent1",
+   "name": "ethernet-1/1",
+   "subinterface": [
+    {
+     "index": 2,
+     "type": "bridged",
+     "vlan": {
+      "encap": {
+       "single-tagged": {
+        "vlan-id": 2
+       }
+      }
+     }
+    },
+    {
+...
+```
 
 **Validate a config:**
 ```bash
 config-diff config validate -t router1
+```
+Output:
+```
+Target: router1
+Validations performed:
+  leafref: 25
+  length: 113
+  mandatory: 5
+  min/max: 4
+  must-statement: 785
+  pattern: 23
+  range: 125
+Successful Validated!
 ```
 
 **Diff config changes:**
 ```bash
 config-diff config diff -t router1 --type patch 
 ```
+Output:
+```
+Target: router1
+@@ -1720,5 +1720,19 @@
+     {
+       "admin-state": "enable",
+-      "name": "ethernet-1/1"
++      "name": "ethernet-1/1",
++      "subinterface": [
++        {
++          "index": 2,
++          "type": "bridged",
++          "vlan": {
++            "encap": {
++              "single-tagged": {
++                "vlan-id": 2
++              }
++            }
++          }
++        }
++      ],
++      "vlan-tagging": true
+     },
+     {
+---
+@@ -1740,4 +1754,9 @@
+         }
+       ]
++    },
++    {
++      "admin-state": "enable",
++      "description": "k8s-system0-dummy",
++      "name": "system0"
+     }
+   ],
+---
+```
 
 
+**Blame - show intent sources of configuration**
+
+```bash
+config-diff config blame -t router1
+```
+
+Output:
+```
+...
+    running    │     │               ├── 🍃 max-packet-burst -> 1000
+    running    │     │               ├── 🍃 name -> icmp
+    running    │     │               └── 🍃 peak-packet-rate -> 1000
+      -----    │     ├── 📦 interface
+      -----    │     │   ├── 📦 ethernet-1/1
+    config1    │     │   │   ├── 🍃 admin-state -> enable
+    config1    │     │   │   ├── 🍃 name -> ethernet-1/1
+      -----    │     │   │   ├── 📦 subinterface
+      -----    │     │   │   │   └── 📦 2
+    config1    │     │   │   │       ├── 🍃 index -> 2
+    config1    │     │   │   │       ├── 🍃 type -> bridged
+      -----    │     │   │   │       └── 📦 vlan
+      -----    │     │   │   │           └── 📦 encap
+      -----    │     │   │   │               └── 📦 single-tagged
+    config1    │     │   │   │                   └── 🍃 vlan-id -> 2
+    config1    │     │   │   └── 🍃 vlan-tagging -> true
+      -----    │     │   ├── 📦 mgmt0
+    running    │     │   │   ├── 🍃 admin-state -> enable
+    running    │     │   │   ├── 🍃 name -> mgmt0
+      -----    │     │   │   └── 📦 subinterface
+      -----    │     │   │       └── 📦 0
+    running    │     │   │           ├── 🍃 admin-state -> enable
+    running    │     │   │           ├── 🍃 index -> 0
+    running    │     │   │           ├── 🍃 ip-mtu -> 1500
+      -----    │     │   │           ├── 📦 ipv4
+    running    │     │   │           │   ├── 🍃 admin-state -> enable
+    running    │     │   │           │   └── 🍃 dhcp-client -> {}
+      -----    │     │   │           └── 📦 ipv6
+    running    │     │   │               ├── 🍃 admin-state -> enable
+    running    │     │   │               └── 🍃 dhcp-client -> {}
+      -----    │     │   └── 📦 system0
+test-orphan    │     │       ├── 🍃 admin-state -> enable
+test-orphan    │     │       ├── 🍃 description -> k8s-system0-dummy
+test-orphan    │     │       └── 🍃 name -> system0
+      -----    │     ├── 📦 network-instance
+      -----    │     │   └── 📦 mgmt
+    running    │     │       ├── 🍃 admin-state -> enable
+...
+```
 
 
 ## Usage
