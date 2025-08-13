@@ -61,21 +61,27 @@ func (c *ConfigDiff) CopyEmptyConfigDiff(ctx context.Context) (*ConfigDiff, erro
 	return result, nil
 }
 
-func (c *ConfigDiff) GetTreeJson(ctx context.Context) (any, error) {
+func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, error) {
 	// finish InsertionPhase on tree
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, err
 	}
-	// retrive running Tree json
-	jTree, err := c.tree.ToJson(false)
+	// navigate to path
+	entry, err := c.tree.NavigateSdcpbPath(ctx, path.GetElem(), true)
 	if err != nil {
 		return nil, err
 	}
+	// retrive running Tree json
+	jTree, err := entry.ToJson(false)
+	if err != nil {
+		return nil, err
+	}
+
 	return jTree, nil
 }
 
-func (c *ConfigDiff) GetRunningJson(ctx context.Context) (any, error) {
+func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any, error) {
 	lvs := tree.LeafVariantSlice{}
 	// export running intents
 	lvs = c.tree.GetByOwner("running", lvs)
@@ -96,8 +102,13 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context) (any, error) {
 		return nil, err
 	}
 
+	entry, err := runningTree.NavigateSdcpbPath(ctx, path.GetElem(), true)
+	if err != nil {
+		return nil, err
+	}
+
 	// retrive running Tree json
-	jrunTree, err := runningTree.ToJson(false)
+	jrunTree, err := entry.ToJson(false)
 	if err != nil {
 		return nil, err
 	}
@@ -105,15 +116,15 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context) (any, error) {
 	return jrunTree, nil
 }
 
-func (c *ConfigDiff) GetDiff(ctx context.Context, dc *types.DiffConfig) (string, error) {
+func (c *ConfigDiff) GetDiff(ctx context.Context, dc *types.DiffConfig, path *sdcpb.Path) (string, error) {
 
-	runningJson, err := c.GetRunningJson(ctx)
+	runningJson, err := c.GetRunningJson(ctx, path)
 	if err != nil {
-		return "", err
+		log.Warn(err)
 	}
-	treeJson, err := c.GetTreeJson(ctx)
+	treeJson, err := c.GetTreeJson(ctx, path)
 	if err != nil {
-		return "", err
+		log.Warn(err)
 	}
 
 	differ, err := diff.NewDifferJson(runningJson, treeJson)
@@ -273,7 +284,14 @@ func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
 	return err
 }
 
-func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool) (*sdcpb.BlameTreeElement, error) {
+func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool, path *sdcpb.Path) (*sdcpb.BlameTreeElement, error) {
+	if path != nil {
+		start, err := c.tree.NavigateSdcpbPath(ctx, path.Elem, true)
+		if err != nil {
+			return nil, err
+		}
+		return start.BlameConfig(includeDefaults)
+	}
 	return c.tree.BlameConfig(includeDefaults)
 }
 
@@ -327,9 +345,14 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 	return nil
 }
 
-func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigFormat, onlyNewOrUpdated bool) (string, error) {
+func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigFormat, onlyNewOrUpdated bool, path *sdcpb.Path) (string, error) {
 	var err error
 	err = c.tree.FinishInsertionPhase(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	entry, err := c.tree.NavigateSdcpbPath(ctx, path.GetElem(), true)
 	if err != nil {
 		return "", err
 	}
@@ -337,7 +360,7 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 	result := ""
 	switch format {
 	case types.ConfigFormatXml:
-		x, err := c.tree.ToXML(onlyNewOrUpdated, true, true, false)
+		x, err := entry.ToXML(onlyNewOrUpdated, true, true, false)
 		if err != nil {
 			return "", err
 		}
@@ -351,9 +374,9 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
 		var j any
 		if format == types.ConfigFormatJson {
-			j, err = c.tree.ToJson(onlyNewOrUpdated)
+			j, err = entry.ToJson(onlyNewOrUpdated)
 		} else {
-			j, err = c.tree.ToJsonIETF(onlyNewOrUpdated)
+			j, err = entry.ToJsonIETF(onlyNewOrUpdated)
 		}
 		if err != nil {
 			return "", err
@@ -367,7 +390,7 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 		return result, nil
 	case types.ConfigFormatYaml:
 		var j any
-		j, err = c.tree.ToJson(onlyNewOrUpdated)
+		j, err = entry.ToJson(onlyNewOrUpdated)
 		if err != nil {
 			return "", err
 		}

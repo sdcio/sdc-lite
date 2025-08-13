@@ -6,6 +6,7 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,13 @@ var configBlameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		blameresult, err := cd.TreeBlame(ctx, includeDefaults)
+
+		sdcpbPath, err := sdcpb.ParsePath(path)
+		if err != nil {
+			return err
+		}
+
+		blameresult, err := cd.TreeBlame(ctx, includeDefaults, sdcpbPath)
 		if err != nil {
 			return err
 		}
@@ -49,5 +56,6 @@ var configBlameCmd = &cobra.Command{
 func init() {
 	configCmd.AddCommand(configBlameCmd)
 	configBlameCmd.Flags().BoolVar(&includeDefaults, "include-defaults", false, "include the schema based default values in the output")
+	configBlameCmd.Flags().StringVarP(&path, "path", "p", "", "limit the output to given branch (xpath expression e.g. /interface[name=\"ethernet-1/1\"]) ")
 	EnableFlagAndDisableFileCompletion(configBlameCmd)
 }

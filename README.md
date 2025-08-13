@@ -142,7 +142,7 @@ Target: router1 (/home/mava/.cache/config-diff/targets/router1)
 
 **Show current configuration:**
 ```bash
-config-diff config show -t router1 -o json -a
+config-diff config show -t router1 -o json -a --path /interface[name="ethernet-1/1"]
 ```
 Output formats can also be `json_ietf` or `xml`.
 If you want to see only addtions on top of running, remove the `-a` option.
@@ -151,24 +151,23 @@ Output
 ```
 Target: router1
 {
- "interface": [
+ "admin-state": "enable",
+ "name": "ethernet-1/1",
+ "subinterface": [
   {
-   "description": "intent1",
-   "name": "ethernet-1/1",
-   "subinterface": [
-    {
-     "index": 2,
-     "type": "bridged",
-     "vlan": {
-      "encap": {
-       "single-tagged": {
-        "vlan-id": 2
-       }
-      }
+   "index": 2,
+   "type": "bridged",
+   "vlan": {
+    "encap": {
+     "single-tagged": {
+      "vlan-id": 2
      }
-    },
-    {
-...
+    }
+   }
+  }
+ ],
+ "vlan-tagging": true
+}
 ```
 
 **Validate a config:**
@@ -235,50 +234,43 @@ Target: router1
 **Blame - show intent sources of configuration**
 
 ```bash
-config-diff config blame -t router1
+config-diff config blame -t router1 -p /interface
 ```
 
 Output:
 ```
-...
-    running    │     │               ├── 🍃 max-packet-burst -> 1000
-    running    │     │               ├── 🍃 name -> icmp
-    running    │     │               └── 🍃 peak-packet-rate -> 1000
-      -----    │     ├── 📦 interface
-      -----    │     │   ├── 📦 ethernet-1/1
-    config1    │     │   │   ├── 🍃 admin-state -> enable
-    config1    │     │   │   ├── 🍃 name -> ethernet-1/1
-      -----    │     │   │   ├── 📦 subinterface
-      -----    │     │   │   │   └── 📦 2
-    config1    │     │   │   │       ├── 🍃 index -> 2
-    config1    │     │   │   │       ├── 🍃 type -> bridged
-      -----    │     │   │   │       └── 📦 vlan
-      -----    │     │   │   │           └── 📦 encap
-      -----    │     │   │   │               └── 📦 single-tagged
-    config1    │     │   │   │                   └── 🍃 vlan-id -> 2
-    config1    │     │   │   └── 🍃 vlan-tagging -> true
-      -----    │     │   ├── 📦 mgmt0
-    running    │     │   │   ├── 🍃 admin-state -> enable
-    running    │     │   │   ├── 🍃 name -> mgmt0
-      -----    │     │   │   └── 📦 subinterface
-      -----    │     │   │       └── 📦 0
-    running    │     │   │           ├── 🍃 admin-state -> enable
-    running    │     │   │           ├── 🍃 index -> 0
-    running    │     │   │           ├── 🍃 ip-mtu -> 1500
-      -----    │     │   │           ├── 📦 ipv4
-    running    │     │   │           │   ├── 🍃 admin-state -> enable
-    running    │     │   │           │   └── 🍃 dhcp-client -> {}
-      -----    │     │   │           └── 📦 ipv6
-    running    │     │   │               ├── 🍃 admin-state -> enable
-    running    │     │   │               └── 🍃 dhcp-client -> {}
-      -----    │     │   └── 📦 system0
-test-orphan    │     │       ├── 🍃 admin-state -> enable
-test-orphan    │     │       ├── 🍃 description -> k8s-system0-dummy
-test-orphan    │     │       └── 🍃 name -> system0
-      -----    │     ├── 📦 network-instance
-      -----    │     │   └── 📦 mgmt
-    running    │     │       ├── 🍃 admin-state -> enable
-...
+Target: router1
+      -----    │     🎯 interface
+      -----    │     ├── 📦 ethernet-1/1
+    config1    │     │   ├── 🍃 admin-state -> enable
+    config1    │     │   ├── 🍃 name -> ethernet-1/1
+      -----    │     │   ├── 📦 subinterface
+      -----    │     │   │   └── 📦 2
+    config1    │     │   │       ├── 🍃 index -> 2
+    config1    │     │   │       ├── 🍃 type -> bridged
+      -----    │     │   │       └── 📦 vlan
+      -----    │     │   │           └── 📦 encap
+      -----    │     │   │               └── 📦 single-tagged
+    config1    │     │   │                   └── 🍃 vlan-id -> 2
+    config1    │     │   └── 🍃 vlan-tagging -> true
+      -----    │     ├── 📦 mgmt0
+    running    │     │   ├── 🍃 admin-state -> enable
+    running    │     │   ├── 🍃 name -> mgmt0
+      -----    │     │   └── 📦 subinterface
+      -----    │     │       └── 📦 0
+    running    │     │           ├── 🍃 admin-state -> enable
+    running    │     │           ├── 🍃 index -> 0
+    running    │     │           ├── 🍃 ip-mtu -> 1500
+      -----    │     │           ├── 📦 ipv4
+    running    │     │           │   ├── 🍃 admin-state -> enable
+    running    │     │           │   └── 🍃 dhcp-client -> {}
+      -----    │     │           └── 📦 ipv6
+    running    │     │               ├── 🍃 admin-state -> enable
+    running    │     │               └── 🍃 dhcp-client -> {}
+      -----    │     └── 📦 system0
+test-orphan    │         ├── 🍃 admin-state -> enable
+test-orphan    │         ├── 🍃 description -> k8s-system0-dummy
+test-orphan    │         └── 🍃 name -> system0
 ```
 
 **Remove the target for cleanup**

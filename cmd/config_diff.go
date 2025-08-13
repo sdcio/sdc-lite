@@ -9,6 +9,7 @@ import (
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/sdcio/config-diff/pkg/types"
+	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -61,7 +62,12 @@ var configDiffCmd = &cobra.Command{
 			return err
 		}
 
-		result, err := cd.GetDiff(ctx, types.NewDiffConfig(difftype).SetContextLines(contextLines).SetColor(!noColor).SetConfig(types.ConfigFormat(outFormatStr)))
+		sdcpbPath, err := sdcpb.ParsePath(path)
+		if err != nil {
+			return err
+		}
+
+		result, err := cd.GetDiff(ctx, types.NewDiffConfig(difftype).SetContextLines(contextLines).SetColor(!noColor).SetConfig(types.ConfigFormat(outFormatStr)), sdcpbPath)
 		if err != nil {
 			return err
 		}
@@ -78,6 +84,7 @@ func init() {
 	configDiffCmd.Flags().IntVar(&contextLines, "context", 2, "number of context lines in patch based diffs")
 	configDiffCmd.Flags().BoolVar(&noColor, "no-color", false, "non colorized output")
 	configDiffCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
+	configDiffCmd.Flags().StringVarP(&path, "path", "p", "", "limit the output to given branch (xpath expression e.g. /interface[name=\"ethernet-1/1\"]) ")
 	EnableFlagAndDisableFileCompletion(configDiffCmd)
 
 	// Register autocompletion for the diff type flag

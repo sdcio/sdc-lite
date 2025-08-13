@@ -9,6 +9,7 @@ import (
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
 	"github.com/sdcio/config-diff/pkg/types"
+	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/spf13/cobra"
 )
 
@@ -48,7 +49,12 @@ var configShowCmd = &cobra.Command{
 			return err
 		}
 
-		data, err := cd.TreeGetString(ctx, outFormat, !outputAll)
+		sdcpbPath, err := sdcpb.ParsePath(path)
+		if err != nil {
+			return err
+		}
+
+		data, err := cd.TreeGetString(ctx, outFormat, !outputAll, sdcpbPath)
 		if err != nil {
 			return err
 		}
@@ -63,5 +69,6 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 	configShowCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configShowCmd.Flags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
+	configShowCmd.Flags().StringVarP(&path, "path", "p", "", "limit the output to given branch (xpath expression e.g. /interface[name=\"ethernet-1/1\"]) ")
 	EnableFlagAndDisableFileCompletion(configShowCmd)
 }

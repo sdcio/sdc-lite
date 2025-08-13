@@ -11,6 +11,7 @@ var (
 	outFormatStr string
 	outFormat    types.ConfigFormat
 	targetName   string
+	path         string
 )
 
 // datastoreCmd represents the datastore command
