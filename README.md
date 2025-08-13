@@ -281,6 +281,15 @@ test-orphan    │     │       └── 🍃 name -> system0
 ...
 ```
 
+**Remove the target for cleanup**
+```bash
+config-diff target remove -t router1 
+```
+Output:
+```
+Target: router1
+INFO[0000] target router1 - successfully removed        
+```
 
 ## Usage
 
