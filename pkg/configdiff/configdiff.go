@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/beevik/etree"
@@ -283,14 +284,25 @@ func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
 }
 
 func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool, path *sdcpb.Path) (*sdcpb.BlameTreeElement, error) {
+	cbv := tree.NewBlameConfigVisitor(includeDefaults)
 	if path != nil {
+		// process with a provided path
 		start, err := c.tree.NavigateSdcpbPath(ctx, path.Elem, true)
 		if err != nil {
 			return nil, err
 		}
-		return start.BlameConfig(includeDefaults)
+		err = start.Walk(ctx, cbv)
+		if err != nil {
+			return nil, err
+		}
+		return cbv.GetResult(), nil
 	}
-	return c.tree.BlameConfig(includeDefaults)
+	// if no path is provided
+	err := c.tree.Walk(ctx, cbv)
+	if err != nil {
+		return nil, err
+	}
+	return cbv.GetResult(), nil
 }
 
 func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) error {
@@ -414,4 +426,138 @@ func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResu
 	}
 	valResult, valStat := c.tree.Validate(ctx, c.config.Validation())
 	return valResult, valStat, nil
+}
+
+func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) []string {
+
+	cleanToComplete := toComplete
+	keyPart := ""
+	doKeyAction := false
+	if strings.LastIndex(toComplete, "[") > strings.LastIndex(toComplete, "]") {
+		cleanToComplete = toComplete[:strings.LastIndex(toComplete, "[")]
+		keyPart = toComplete[strings.LastIndex(toComplete, "[")+1:]
+		doKeyAction = true
+	}
+
+	toCompletePath, err := sdcpb.ParsePath(cleanToComplete)
+	if err != nil {
+		return nil
+	}
+	if doKeyAction {
+		if strings.Contains(keyPart, "=") {
+			return c.completeKey(ctx, toCompletePath, keyPart)
+		}
+		return c.completeKeyName(ctx, toCompletePath, keyPart)
+	}
+
+	return c.completePathName(ctx, toCompletePath)
+
+}
+func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path, leftover string) []string {
+	attrName, attrVal, _ := strings.Cut(leftover, "=")
+
+	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	if err != nil {
+		return nil
+	}
+
+	lastLevelKeys := toCompletePath.Elem[len(toCompletePath.Elem)-1].Key
+
+	childs, err := entry.FilterChilds(lastLevelKeys)
+	if err != nil {
+		return nil
+	}
+	result := []string{}
+	for _, e := range childs {
+		em := e.GetChilds(tree.DescendMethodActiveChilds)
+		lvs := tree.LeafVariantSlice{}
+		lvs = em[attrName].GetHighestPrecedence(lvs, false, true)
+		elemVal := lvs[0].Update.Value().ToString()
+		if !strings.HasPrefix(elemVal, attrVal) {
+			continue
+		}
+		newPath := toCompletePath.DeepCopy()
+		if newPath.Elem[len(newPath.Elem)-1].Key == nil {
+			newPath.Elem[len(newPath.Elem)-1].Key = map[string]string{}
+		}
+		newPath.Elem[len(newPath.Elem)-1].Key[attrName] = elemVal
+		pstring := newPath.ToXPath(false)
+		result = append(result, pstring)
+	}
+	return result
+}
+func (c *ConfigDiff) completeKeyName(ctx context.Context, toCompletePath *sdcpb.Path, leftOver string) []string {
+	toCompletePathCopy := toCompletePath.DeepCopy()
+	existingKeys := map[string]struct{}{}
+	for k := range toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key {
+		existingKeys[k] = struct{}{}
+	}
+
+	toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key = nil
+	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	if err != nil {
+		return nil
+	}
+	result := []string{}
+	for _, k := range entry.GetSchemaKeys() {
+		_, keyexists := existingKeys[k]
+		if strings.HasPrefix(k, leftOver) && !keyexists {
+			result = append(result, fmt.Sprintf("%s[%s=", toCompletePath.ToXPath(false), k))
+		}
+	}
+	return result
+}
+func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb.Path) []string {
+	var err error
+	var entry tree.Entry
+	var incompleteLastElem *sdcpb.PathElem
+	if len(toCompletePath.Elem) > 0 {
+		// check if the provied path points to something that exists
+		_, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+		if err != nil {
+			// path does not exist, so lets strip last elem
+			if len(toCompletePath.Elem[len(toCompletePath.Elem)-1].Key) > 0 {
+				// processing keys
+			} else {
+				// processing normal path elements
+				// remove the last element since it is probably just partial
+				incompleteLastElem = toCompletePath.Elem[len(toCompletePath.Elem)-1]
+				toCompletePath.Elem = toCompletePath.Elem[:len(toCompletePath.Elem)-1]
+			}
+		}
+	}
+
+	entry, err = c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	if err != nil {
+		return nil
+	}
+	childs := entry.GetChilds(tree.DescendMethodActiveChilds)
+
+	var resultEntries []tree.Entry
+
+	doAdd := true
+	for k, v := range childs {
+		if incompleteLastElem != nil {
+			doAdd = strings.HasPrefix(k, incompleteLastElem.Name)
+		}
+		if doAdd {
+			resultEntries = append(resultEntries, v)
+		}
+	}
+
+	results := make([]string, 0, len(resultEntries))
+	//convert to xpath
+	for _, e := range resultEntries {
+		sdcpbPath, err := e.SdcpbPath()
+		if err != nil {
+			continue
+		}
+		pathPostfix := ""
+		if len(e.GetSchemaKeys()) > 0 {
+			pathPostfix = "["
+		}
+		results = append(results, fmt.Sprintf("/%s%s", sdcpbPath.ToXPath(false), pathPostfix))
+	}
+	sort.Strings(results)
+	return results
 }

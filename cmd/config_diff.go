@@ -84,7 +84,7 @@ func init() {
 	configDiffCmd.Flags().IntVar(&contextLines, "context", 2, "number of context lines in patch based diffs")
 	configDiffCmd.Flags().BoolVar(&noColor, "no-color", false, "non colorized output")
 	configDiffCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
-	configDiffCmd.Flags().StringVarP(&path, "path", "p", "", "limit the output to given branch (xpath expression e.g. /interface[name=\"ethernet-1/1\"]) ")
+	AddPathPersistentFlag(configDiffCmd)
 	EnableFlagAndDisableFileCompletion(configDiffCmd)
 
 	// Register autocompletion for the diff type flag

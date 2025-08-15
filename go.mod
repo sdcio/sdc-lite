@@ -6,6 +6,11 @@ toolchain go1.24.3
 
 replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 
+replace (
+	github.com/sdcio/data-server => /home/mava/projects/data-server
+	github.com/sdcio/sdc-protos => /home/mava/projects/sdc-protos
+)
+
 require (
 	github.com/beevik/etree v1.5.1
 	github.com/sdcio/config-server v0.0.53

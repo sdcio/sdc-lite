@@ -25,7 +25,13 @@ var configShowCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		outFormat, err = parseConfigFormat()
-		return err
+		if err != nil {
+			return err
+		}
+		if path != "" {
+			outputAll = true
+		}
+		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -69,6 +75,6 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 	configShowCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configShowCmd.Flags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
-	configShowCmd.Flags().StringVarP(&path, "path", "p", "", "limit the output to given branch (xpath expression e.g. /interface[name=\"ethernet-1/1\"]) ")
+	AddPathPersistentFlag(configShowCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
 }

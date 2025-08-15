@@ -56,6 +56,6 @@ var configBlameCmd = &cobra.Command{
 func init() {
 	configCmd.AddCommand(configBlameCmd)
 	configBlameCmd.Flags().BoolVar(&includeDefaults, "include-defaults", false, "include the schema based default values in the output")
-	configBlameCmd.Flags().StringVarP(&path, "path", "p", "", "limit the output to given branch (xpath expression e.g. /interface[name=\"ethernet-1/1\"]) ")
+	AddPathPersistentFlag(configBlameCmd)
 	EnableFlagAndDisableFileCompletion(configBlameCmd)
 }
