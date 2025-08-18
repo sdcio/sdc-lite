@@ -137,7 +137,11 @@ func (wi *Target) GetSchema() *sdcpb.Schema {
 }
 
 func (wi *Target) String() string {
-	return fmt.Sprintf("%s [ %s %s ]\n", wi.config.TargetName(), wi.schema.Vendor, wi.schema.Version)
+	schemaDetail := "unknown"
+	if wi.schema != nil {
+		schemaDetail = fmt.Sprintf("%s %s", wi.schema.Vendor, wi.schema.Version)
+	}
+	return fmt.Sprintf("%s [ %s ]\n", wi.config.TargetName(), schemaDetail)
 }
 
 func (wi *Target) StringDetail() string {
