@@ -552,11 +552,10 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 		if err != nil {
 			continue
 		}
-		pathPostfix := ""
 		if len(e.GetSchemaKeys()) > 0 {
-			pathPostfix = "["
+			results = append(results, fmt.Sprintf("/%s[%s=", sdcpbPath.ToXPath(false), e.GetSchemaKeys()[0]))
 		}
-		results = append(results, fmt.Sprintf("/%s%s", sdcpbPath.ToXPath(false), pathPostfix))
+		results = append(results, fmt.Sprintf("/%s", sdcpbPath.ToXPath(false)))
 	}
 	sort.Strings(results)
 	return results
