@@ -34,14 +34,6 @@ func NewTarget(w TargetConfig) *Target {
 	return wi
 }
 
-func (wi *Target) Create() error {
-	err := utils.CreateFolder(wi.config.TargetPath())
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (wi *Target) AddIntent(i *Intent) error {
 	wi.intents.AddIntent(i)
 	return nil
@@ -93,7 +85,11 @@ func (wi *Target) SetSchema(s *sdcpb.Schema) {
 }
 
 func (wi *Target) Persist() error {
-	err := wi.schemaPersist()
+	err := utils.CreateFolder(wi.config.TargetPath())
+	if err != nil {
+		return err
+	}
+	err = wi.schemaPersist()
 	if err != nil {
 		return err
 	}
