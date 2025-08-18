@@ -49,7 +49,7 @@ esac
 echo "📦 Installing config-diff for $OS/$ARCH..."
 
 # Get latest release tag from GitHub API
-LATEST_TAG=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -oP '"tag_name":\s*"\K(.*)(?=")')
+LATEST_TAG=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -oE '"tag_name":\s*"[^"]+"' | cut -d '"' -f 4)
 
 if [ -z "$LATEST_TAG" ]; then
     echo "❌ Failed to fetch latest release tag"
