@@ -23,6 +23,7 @@ builds:
       - -s -w -X github.com/sdcio/config-diff/cmd.version={{.Version}} -X github.com/sdcio/config-diff/cmd.commit={{.ShortCommit}}
     goos:
       - linux
+      - darwin
     goarch:
       - amd64
       - arm64
