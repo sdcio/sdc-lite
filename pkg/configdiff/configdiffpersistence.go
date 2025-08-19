@@ -39,13 +39,7 @@ func NewConfigDiffPersistence(ctx context.Context, c *config.ConfigPersistent) (
 }
 
 func (c *ConfigDiffPersistence) InitTargetFolder(ctx context.Context) error {
-
 	c.target = *types.NewTarget(c.config)
-	err := c.target.Create()
-	if err != nil {
-		return err
-	}
-
 	c.schema = c.target.GetSchema()
 	if c.schema == nil {
 		// if the schema is expected to be there, but it is not, throw an error
@@ -56,7 +50,7 @@ func (c *ConfigDiffPersistence) InitTargetFolder(ctx context.Context) error {
 		return nil
 	}
 
-	err = c.buildRootTree(ctx)
+	err := c.buildRootTree(ctx)
 	if err != nil {
 		return err
 	}
