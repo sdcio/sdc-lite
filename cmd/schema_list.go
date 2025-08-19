@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
@@ -37,10 +39,21 @@ var SchemaListCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Available Schemas:")
-		for _, s := range schemas {
-			fmt.Printf("Vendor: %s, Version: %s\n", s.GetVendor(), s.GetVersion())
+		switch {
+		case jsonOutput:
+			result, err := json.MarshalIndent(schemas, "", "  ")
+			if err != nil {
+				return err
+			}
+			os.Stdout.Write(result)
+			os.Stdout.WriteString("\n")
+		default:
+			fmt.Println("Available Schemas:")
+			for _, s := range schemas {
+				fmt.Printf("Vendor: %s, Version: %s\n", s.GetVendor(), s.GetVersion())
+			}
 		}
+
 		return nil
 
 	},

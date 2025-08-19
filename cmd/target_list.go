@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
@@ -41,9 +43,17 @@ var targetListCmd = &cobra.Command{
 			fmt.Println("no targets found")
 			return nil
 		}
-		if detailed {
+
+		switch {
+		case jsonOutput:
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(targets.Export()); err != nil {
+				return err
+			}
+		case detailed:
 			fmt.Print(targets.StringDetail())
-		} else {
+		default:
 			fmt.Print(targets.String())
 		}
 		return nil

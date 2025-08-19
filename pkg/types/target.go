@@ -34,53 +34,45 @@ func NewTarget(w TargetConfig) *Target {
 	return wi
 }
 
-func (wi *Target) Create() error {
-	err := utils.CreateFolder(wi.config.TargetPath())
-	if err != nil {
-		return err
-	}
+func (t *Target) AddIntent(i *Intent) error {
+	t.intents.AddIntent(i)
 	return nil
 }
 
-func (wi *Target) AddIntent(i *Intent) error {
-	wi.intents.AddIntent(i)
-	return nil
-}
-
-func (wi *Target) DeleteIntent(name string) error {
-	_, exists := wi.intents[name]
+func (t *Target) DeleteIntent(name string) error {
+	_, exists := t.intents[name]
 	if !exists {
 		return fmt.Errorf("error deleting intent %s - not found", name)
 	}
-	delete(wi.intents, name)
-	err := os.Remove(wi.config.ConfigFileName(name))
+	delete(t.intents, name)
+	err := os.Remove(t.config.ConfigFileName(name))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (wi *Target) GetIntents() Intents {
-	return wi.intents
+func (t *Target) GetIntents() Intents {
+	return t.intents
 }
 
-func (wi *Target) schemaPersist() error {
-	schemaByte, err := protojson.Marshal(wi.schema)
+func (t *Target) schemaPersist() error {
+	schemaByte, err := protojson.Marshal(t.schema)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(wi.config.SchemaDefinitionFilePath(), schemaByte, 0644)
+	err = os.WriteFile(t.config.SchemaDefinitionFilePath(), schemaByte, 0644)
 	return err
 }
 
-func (wi *Target) intentsPersist() error {
-	for name, content := range wi.intents {
+func (t *Target) intentsPersist() error {
+	for name, content := range t.intents {
 		data, err := json.Marshal(content)
 		if err != nil {
 			return err
 		}
-		err = os.WriteFile(wi.config.ConfigFileName(name), data, 0644)
+		err = os.WriteFile(t.config.ConfigFileName(name), data, 0644)
 		if err != nil {
 			return err
 		}
@@ -88,24 +80,28 @@ func (wi *Target) intentsPersist() error {
 	return nil
 }
 
-func (wi *Target) SetSchema(s *sdcpb.Schema) {
-	wi.schema = s
+func (t *Target) SetSchema(s *sdcpb.Schema) {
+	t.schema = s
 }
 
-func (wi *Target) Persist() error {
-	err := wi.schemaPersist()
+func (t *Target) Persist() error {
+	err := utils.CreateFolder(t.config.TargetPath())
 	if err != nil {
 		return err
 	}
-	err = wi.intentsPersist()
+	err = t.schemaPersist()
+	if err != nil {
+		return err
+	}
+	err = t.intentsPersist()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (wi *Target) loadIntent() error {
-	matches, err := filepath.Glob(wi.config.ConfigFileGlob())
+func (t *Target) loadIntent() error {
+	matches, err := filepath.Glob(t.config.ConfigFileGlob())
 	if err != nil {
 		return err
 	}
@@ -119,44 +115,60 @@ func (wi *Target) loadIntent() error {
 		if err != nil {
 			return err
 		}
-		wi.intents.AddIntent(ii)
+		t.intents.AddIntent(ii)
 	}
 	return nil
 }
 
-func (wi *Target) loadSchemaInfo() (err error) {
-	wi.schema, err = utils.SchemaLoadSdcpbSchemaFile(wi.config.SchemaDefinitionFilePath())
+func (t *Target) loadSchemaInfo() (err error) {
+	t.schema, err = utils.SchemaLoadSdcpbSchemaFile(t.config.SchemaDefinitionFilePath())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (wi *Target) GetSchema() *sdcpb.Schema {
-	return wi.schema
+func (t *Target) GetSchema() *sdcpb.Schema {
+	return t.schema
 }
 
-func (wi *Target) String() string {
-	schemaDetail := "unknown"
-	if wi.schema != nil {
-		schemaDetail = fmt.Sprintf("%s %s", wi.schema.Vendor, wi.schema.Version)
+func (t *Target) Export() *TargetExport {
+	result := &TargetExport{
+		TargetName: t.config.TargetName(),
+		Intents:    t.intents.Export(),
+		TargetPath: t.config.TargetPath(),
 	}
-	return fmt.Sprintf("%s [ %s ]\n", wi.config.TargetName(), schemaDetail)
+	if t.schema != nil {
+		result.Schema = &SchemaExport{
+			Vendor:  t.schema.Vendor,
+			Version: t.schema.Version,
+		}
+	}
+
+	return result
 }
 
-func (wi *Target) StringDetail() string {
+func (t *Target) String() string {
+	schemaDetail := "unknown"
+	if t.schema != nil {
+		schemaDetail = fmt.Sprintf("%s %s", t.schema.Vendor, t.schema.Version)
+	}
+	return fmt.Sprintf("%s [ %s ]\n", t.config.TargetName(), schemaDetail)
+}
+
+func (t *Target) StringDetail() string {
 	sb := strings.Builder{}
 	indentTarget := ""
 	indentTargetInfos := fmt.Sprintf("%s  ", indentTarget)
 	indentTargetIntent := fmt.Sprintf("%s  ", indentTargetInfos)
 	indentTargetIntentInfos := fmt.Sprintf("%s  ", indentTargetIntent)
-	sb.WriteString(fmt.Sprintf("%sTarget: %s (%s)\n", indentTarget, wi.config.TargetName(), wi.config.TargetPath()))
-	if wi.schema != nil {
+	sb.WriteString(fmt.Sprintf("%sTarget: %s (%s)\n", indentTarget, t.config.TargetName(), t.config.TargetPath()))
+	if t.schema != nil {
 		sb.WriteString(fmt.Sprintf("%sSchema:\n", indentTargetIntent))
-		sb.WriteString(fmt.Sprintf("%sName: %s\n", indentTargetIntentInfos, wi.schema.GetVendor()))
-		sb.WriteString(fmt.Sprintf("%sVersion: %s\n", indentTargetIntentInfos, wi.schema.GetVersion()))
+		sb.WriteString(fmt.Sprintf("%sName: %s\n", indentTargetIntentInfos, t.schema.GetVendor()))
+		sb.WriteString(fmt.Sprintf("%sVersion: %s\n", indentTargetIntentInfos, t.schema.GetVersion()))
 	}
-	for _, i := range wi.intents {
+	for _, i := range t.intents {
 		sb.WriteString(fmt.Sprintf("%sIntent: %s\n", indentTargetIntent, i.GetName()))
 		sb.WriteString(fmt.Sprintf("%sPrio: %d\n", indentTargetIntentInfos, i.GetPrio()))
 		sb.WriteString(fmt.Sprintf("%sFlag: %s\n", indentTargetIntentInfos, i.GetFlag()))
@@ -188,10 +200,25 @@ func (t Targets) StringDetail() string {
 	return sb.String()
 }
 
+func (t Targets) Export() []*TargetExport {
+	result := make([]*TargetExport, 0, len(t))
+	for _, target := range t {
+		result = append(result, target.Export())
+	}
+	return result
+}
+
 type TargetConfig interface {
 	TargetName() string
 	ConfigFileName(intentName string) string
 	ConfigFileGlob() string
 	SchemaDefinitionFilePath() string
 	TargetPath() string
+}
+
+type TargetExport struct {
+	TargetName string          `json:"target"`
+	TargetPath string          `json:"target-path"`
+	Schema     *SchemaExport   `json:"schema"`
+	Intents    []*IntentExport `json:"intents"`
 }

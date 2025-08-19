@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	cdtypes "github.com/sdcio/config-diff/pkg/types"
 	"github.com/sdcio/data-server/pkg/tree/types"
 	"github.com/spf13/cobra"
 )
@@ -43,47 +45,64 @@ var configValidateCmd = &cobra.Command{
 			return err
 		}
 
-		if len(valStats.GetCounter()) > 0 {
-			fmt.Println("Validations performed:")
-			indent := "  "
-			// sort the map, by getting the keys first
-			keys := make([]types.StatType, 0, len(valStats.GetCounter()))
-			for typ := range valStats.GetCounter() {
-				keys = append(keys, typ)
+		switch {
+		case jsonOutput:
+			jsonResult := &cdtypes.ValidationStatsExport{
+				Target:   targetName,
+				Passed:   !valResult.HasErrors(),
+				Errors:   valResult.ErrorsStr(),
+				Warnings: valResult.WarningsStr(),
 			}
 
-			// sorting the keys
-			sort.Slice(keys, func(i, j int) bool {
-				return keys[i].String() < keys[j].String()
-			})
-			// printing the stats in the sorted order
-			for _, typ := range keys {
-				fmt.Printf("%s%s: %d\n", indent, typ.String(), valStats.GetCounter()[typ])
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(jsonResult); err != nil {
+				return err
 			}
-		}
 
-		if !valResult.HasErrors() && !valResult.HasWarnings() {
-			fmt.Println("Successful Validated!")
-		}
+		default:
+			if len(valStats.GetCounter()) > 0 {
+				fmt.Println("Validations performed:")
+				indent := "  "
+				// sort the map, by getting the keys first
+				keys := make([]types.StatType, 0, len(valStats.GetCounter()))
+				for typ := range valStats.GetCounter() {
+					keys = append(keys, typ)
+				}
 
-		if valResult.HasErrors() {
-			errStrBuilder := &strings.Builder{}
-			errStrBuilder.WriteString("Errors:\n")
-			for _, errStr := range valResult.ErrorsStr() {
-				errStrBuilder.WriteString(errStr)
-				errStrBuilder.WriteString("\n")
+				// sorting the keys
+				sort.Slice(keys, func(i, j int) bool {
+					return keys[i].String() < keys[j].String()
+				})
+				// printing the stats in the sorted order
+				for _, typ := range keys {
+					fmt.Printf("%s%s: %d\n", indent, typ.String(), valStats.GetCounter()[typ])
+				}
 			}
-			fmt.Println(errStrBuilder.String())
-		}
 
-		if valResult.HasWarnings() {
-			warnStrBuilder := &strings.Builder{}
-			warnStrBuilder.WriteString("Errors:\n")
-			for _, warnStr := range valResult.ErrorsStr() {
-				warnStrBuilder.WriteString(warnStr)
-				warnStrBuilder.WriteString("\n")
+			if !valResult.HasErrors() && !valResult.HasWarnings() {
+				fmt.Println("Successful Validated!")
 			}
-			fmt.Println(warnStrBuilder.String())
+
+			if valResult.HasErrors() {
+				errStrBuilder := &strings.Builder{}
+				errStrBuilder.WriteString("Errors:\n")
+				for _, errStr := range valResult.ErrorsStr() {
+					errStrBuilder.WriteString(errStr)
+					errStrBuilder.WriteString("\n")
+				}
+				fmt.Println(errStrBuilder.String())
+			}
+
+			if valResult.HasWarnings() {
+				warnStrBuilder := &strings.Builder{}
+				warnStrBuilder.WriteString("Errors:\n")
+				for _, warnStr := range valResult.ErrorsStr() {
+					warnStrBuilder.WriteString(warnStr)
+					warnStrBuilder.WriteString("\n")
+				}
+				fmt.Println(warnStrBuilder.String())
+			}
 		}
 
 		return nil
