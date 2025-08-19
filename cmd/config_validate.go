@@ -81,7 +81,7 @@ var configValidateCmd = &cobra.Command{
 			}
 
 			if !valResult.HasErrors() && !valResult.HasWarnings() {
-				fmt.Println("Successful Validated!")
+				fmt.Println("Successfully Validated!")
 			}
 
 			if valResult.HasErrors() {
