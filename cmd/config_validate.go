@@ -96,7 +96,7 @@ var configValidateCmd = &cobra.Command{
 
 			if valResult.HasWarnings() {
 				warnStrBuilder := &strings.Builder{}
-				warnStrBuilder.WriteString("Errors:\n")
+				warnStrBuilder.WriteString("Warnings:\n")
 				for _, warnStr := range valResult.ErrorsStr() {
 					warnStrBuilder.WriteString(warnStr)
 					warnStrBuilder.WriteString("\n")
