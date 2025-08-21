@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sdcio/config-diff/pkg/utils"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
@@ -132,14 +131,14 @@ func (t *Target) GetSchema() *sdcpb.Schema {
 	return t.schema
 }
 
-func (t *Target) Export() *TargetExport {
-	result := &TargetExport{
+func (t *Target) Export() *TargetOutput {
+	result := &TargetOutput{
 		TargetName: t.config.TargetName(),
 		Intents:    t.intents.Export(),
 		TargetPath: t.config.TargetPath(),
 	}
 	if t.schema != nil {
-		result.Schema = &SchemaExport{
+		result.Schema = &SchemaOutput{
 			Vendor:  t.schema.Vendor,
 			Version: t.schema.Version,
 		}
@@ -148,60 +147,14 @@ func (t *Target) Export() *TargetExport {
 	return result
 }
 
-func (t *Target) String() string {
-	schemaDetail := "unknown"
-	if t.schema != nil {
-		schemaDetail = fmt.Sprintf("%s %s", t.schema.Vendor, t.schema.Version)
-	}
-	return fmt.Sprintf("%s [ %s ]\n", t.config.TargetName(), schemaDetail)
-}
-
-func (t *Target) StringDetail() string {
-	sb := strings.Builder{}
-	indentTarget := ""
-	indentTargetInfos := fmt.Sprintf("%s  ", indentTarget)
-	indentTargetIntent := fmt.Sprintf("%s  ", indentTargetInfos)
-	indentTargetIntentInfos := fmt.Sprintf("%s  ", indentTargetIntent)
-	sb.WriteString(fmt.Sprintf("%sTarget: %s (%s)\n", indentTarget, t.config.TargetName(), t.config.TargetPath()))
-	if t.schema != nil {
-		sb.WriteString(fmt.Sprintf("%sSchema:\n", indentTargetIntent))
-		sb.WriteString(fmt.Sprintf("%sName: %s\n", indentTargetIntentInfos, t.schema.GetVendor()))
-		sb.WriteString(fmt.Sprintf("%sVersion: %s\n", indentTargetIntentInfos, t.schema.GetVersion()))
-	}
-	for _, i := range t.intents {
-		sb.WriteString(fmt.Sprintf("%sIntent: %s\n", indentTargetIntent, i.GetName()))
-		sb.WriteString(fmt.Sprintf("%sPrio: %d\n", indentTargetIntentInfos, i.GetPrio()))
-		sb.WriteString(fmt.Sprintf("%sFlag: %s\n", indentTargetIntentInfos, i.GetFlag()))
-		sb.WriteString(fmt.Sprintf("%sFormat: %s\n", indentTargetIntentInfos, i.GetFormat()))
-	}
-
-	return sb.String()
-}
-
 type Targets []*Target
 
 func (t *Targets) Add(w *Target) {
 	*t = append(*t, w)
 }
 
-func (t Targets) String() string {
-	sb := &strings.Builder{}
-	for _, w := range t {
-		sb.WriteString(w.String())
-	}
-	return sb.String()
-}
-
-func (t Targets) StringDetail() string {
-	sb := &strings.Builder{}
-	for _, w := range t {
-		sb.WriteString(w.StringDetail())
-	}
-	return sb.String()
-}
-
-func (t Targets) Export() []*TargetExport {
-	result := make([]*TargetExport, 0, len(t))
+func (t Targets) Export() TargetOutputSlice {
+	result := make([]*TargetOutput, 0, len(t))
 	for _, target := range t {
 		result = append(result, target.Export())
 	}
@@ -214,11 +167,4 @@ type TargetConfig interface {
 	ConfigFileGlob() string
 	SchemaDefinitionFilePath() string
 	TargetPath() string
-}
-
-type TargetExport struct {
-	TargetName string          `json:"target"`
-	TargetPath string          `json:"target-path"`
-	Schema     *SchemaExport   `json:"schema"`
-	Intents    []*IntentExport `json:"intents"`
 }

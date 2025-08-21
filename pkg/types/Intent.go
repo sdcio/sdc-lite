@@ -62,12 +62,12 @@ func (i *Intent) String() string {
 	return fmt.Sprintf("Name: %s, Prio: %d, Flag: %s, Format: %s", i.GetName(), i.GetPrio(), i.GetFlag(), i.GetFormat())
 }
 
-func (i *Intent) Export() *IntentExport {
-	return &IntentExport{
+func (i *Intent) Export() *IntentOutput {
+
+	return &IntentOutput{
 		Name:     i.GetName(),
 		Priority: i.GetPrio(),
-		Format:   i.GetFormat(),
-		Flag:     i.GetFlag(),
+		// Flags:    NewFlagsOutput(i.GetFlag()),
 	}
 }
 
@@ -80,17 +80,10 @@ func (i *Intents) AddIntent(ii *Intent) {
 	(*i)[ii.GetName()] = ii
 }
 
-func (i Intents) Export() []*IntentExport {
-	result := make([]*IntentExport, 0, len(i))
+func (i Intents) Export() []*IntentOutput {
+	result := make([]*IntentOutput, 0, len(i))
 	for _, intent := range i {
 		result = append(result, intent.Export())
 	}
 	return result
-}
-
-type IntentExport struct {
-	Name     string                     `json:"target"`
-	Priority int32                      `json:"priority"`
-	Format   ConfigFormat               `json:"format"`
-	Flag     *dsTypes.UpdateInsertFlags `json:"flag"`
 }

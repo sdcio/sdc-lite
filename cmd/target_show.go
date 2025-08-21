@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"os"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
@@ -38,15 +35,11 @@ var targetShowCmd = &cobra.Command{
 			return err
 		}
 
-		switch {
-		case jsonOutput:
-			enc := json.NewEncoder(os.Stdout)
-			enc.SetIndent("", "  ")
-			if err := enc.Encode(target.Export()); err != nil {
-				return err
-			}
-		default:
-			fmt.Print(target.StringDetail())
+		// enable detailed output
+		detailed = true
+		err = WriteOutput(target.Export())
+		if err != nil {
+			return err
 		}
 		return nil
 	},

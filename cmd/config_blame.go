@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/sdcio/config-diff/pkg/configdiff"
 	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	"github.com/sdcio/config-diff/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/spf13/cobra"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var includeDefaults bool
@@ -49,24 +47,8 @@ var configBlameCmd = &cobra.Command{
 			return err
 		}
 
-		switch {
-		case jsonOutput:
-			marshaler := protojson.MarshalOptions{
-				Multiline: true,
-				Indent:    "  ",
-			}
-			jsonBytes, err := marshaler.Marshal(blameresult)
-			if err != nil {
-				return err
-			}
-			_, err = os.Stdout.Write(jsonBytes)
-			if err != nil {
-				return err
-			}
-		default:
-			fmt.Printf("Target: %s\n", targetName)
-			fmt.Println(blameresult.ToString())
-		}
+		bro := types.NewBlameResultOutput(blameresult)
+		WriteOutput(bro)
 
 		return nil
 	},
