@@ -1,4 +1,4 @@
-module github.com/sdcio/config-diff
+module github.com/sdcio/sdc-lite
 
 go 1.24.0
 

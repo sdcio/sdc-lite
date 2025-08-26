@@ -6,7 +6,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/sdcio/config-diff/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/types"
 )
 
 // ANSI color codes

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sdcio/config-diff/pkg/configdiff"
-	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

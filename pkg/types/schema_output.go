@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sdcio/config-diff/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
 

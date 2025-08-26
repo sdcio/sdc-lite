@@ -3,9 +3,9 @@ package cmd
 import (
 	"context"
 
-	"github.com/sdcio/config-diff/pkg/configdiff"
-	"github.com/sdcio/config-diff/pkg/configdiff/config"
-	"github.com/sdcio/config-diff/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/spf13/cobra"
 )

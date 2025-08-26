@@ -35,6 +35,6 @@ kubeconfig
 tls.crt
 tls.key
 tmp
-config-diff
+sdc-lite
 .vscode
 dist/

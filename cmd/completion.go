@@ -117,8 +117,8 @@ func EmitBashCompletionWithWordbreakMods(root *cobra.Command, out io.Writer) err
 		"_init_completion -s",
 		"_init_completion -n ':=[]/' -s")
 	script = strings.ReplaceAll(script,
-		"__config-diff_init_completion -n \"=\" || return",
-		"__config-diff_init_completion -n ':=[]/' || return")
+		"__sdc-lite_init_completion -n \"=\" || return",
+		"__sdc-lite_init_completion -n ':=[]/' || return")
 
 	// Write script then wrapper
 	if _, err := io.WriteString(out, script); err != nil {

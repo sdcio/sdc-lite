@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sdcio/config-diff/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
 )
 
 type IntentOutput struct {

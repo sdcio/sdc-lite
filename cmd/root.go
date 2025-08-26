@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/sdcio/config-diff/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -14,7 +14,7 @@ var jsonOutput bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "config-diff",
+	Use:   "sdc-lite",
 	Short: "A CLI tool to interact with NOS configs based on YANG schemas",
 }
 

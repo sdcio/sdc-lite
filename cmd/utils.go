@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sdcio/config-diff/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
 )
 
 func WriteOutput(o interfaces.Output) (err error) {

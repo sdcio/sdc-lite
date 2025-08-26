@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sdcio/config-diff/pkg/configdiff"
-	"github.com/sdcio/config-diff/pkg/configdiff/config"
-	"github.com/sdcio/config-diff/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

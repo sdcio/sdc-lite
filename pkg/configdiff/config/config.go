@@ -4,9 +4,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/sdcio/config-diff/pkg/utils"
 	"github.com/sdcio/data-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
+	"github.com/sdcio/sdc-lite/pkg/utils"
 )
 
 type Config struct {
@@ -46,7 +46,7 @@ func NewConfig(opts ConfigOpts) (*Config, error) {
 		}
 
 		// generate the cache directory path
-		c.cachePath = path.Join(globalCacheDir, "config-diff")
+		c.cachePath = path.Join(globalCacheDir, "sdc-lite")
 	}
 
 	err = utils.CreateFolder(c.SchemasPath())

@@ -13,14 +13,14 @@
 # limitations under the License.
 
 version: 2
-project_name: config-diff
+project_name: sdc-lite
 builds:
-  - id: config-diff
-    binary: config-diff
+  - id: sdc-lite
+    binary: sdc-lite
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X github.com/sdcio/config-diff/cmd.version={{.Version}} -X github.com/sdcio/config-diff/cmd.commit={{.ShortCommit}}
+      - -s -w -X github.com/sdcio/sdc-lite/cmd.version={{.Version}} -X github.com/sdcio/sdc-lite/cmd.commit={{.ShortCommit}}
     goos:
       - linux
       - darwin

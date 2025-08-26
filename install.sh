@@ -2,7 +2,7 @@
 set -e
 
 ${USE_SUDO:="true"}
-REPO="sdcio/config-diff"
+REPO="sdcio/sdc-lite"
 INSTALL_DIR="/usr/local/bin"
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
@@ -46,7 +46,7 @@ case "$ARCH" in
     aarch64) ARCH="arm64" ;;
 esac
 
-echo "📦 Installing config-diff for $OS/$ARCH..."
+echo "📦 Installing sdc-lite for $OS/$ARCH..."
 
 # Get latest release tag from GitHub API
 LATEST_TAG=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -oE '"tag_name":\s*"[^"]+"' | cut -d '"' -f 4)
@@ -59,7 +59,7 @@ fi
 echo "➡️ Latest version: $LATEST_TAG"
 
 # Download tarball
-TARBALL="config-diff_${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
+TARBALL="sdc-lite_${LATEST_TAG#v}_${OS}_${ARCH}.tar.gz"
 URL="https://github.com/$REPO/releases/download/$LATEST_TAG/$TARBALL"
 
 echo "⬇️ Downloading $URL..."
@@ -70,8 +70,8 @@ echo "📂 Extracting..."
 tar -xzf "$TARBALL"
 
 echo "🚀 Installing to $INSTALL_DIR..."
-runAsRoot mv config-diff "$INSTALL_DIR/config-diff"
-runAsRoot chmod +x "$INSTALL_DIR/config-diff"
+runAsRoot mv sdc-lite "$INSTALL_DIR/sdc-lite"
+runAsRoot chmod +x "$INSTALL_DIR/sdc-lite"
 
 # Cleanup
 rm "$TARBALL"
@@ -83,16 +83,16 @@ case "$SHELL_NAME" in
     bash)
         COMPLETION_PATH="${HOME}/.bash_completion.d"
         mkdir -p "$COMPLETION_PATH"
-        "$INSTALL_DIR/config-diff" completion bash > "$COMPLETION_PATH/config-diff"
+        "$INSTALL_DIR/sdc-lite" completion bash > "$COMPLETION_PATH/sdc-lite"
         # Only append the source line if it doesn't already exist
-        if ! grep -Fxq "source $COMPLETION_PATH/config-diff" "${HOME}/.bashrc"; then
-            echo "source $COMPLETION_PATH/config-diff" >> "${HOME}/.bashrc"
+        if ! grep -Fxq "source $COMPLETION_PATH/sdc-lite" "${HOME}/.bashrc"; then
+            echo "source $COMPLETION_PATH/sdc-lite" >> "${HOME}/.bashrc"
         fi
         ;;
     zsh)
         COMPLETION_PATH="${HOME}/.zsh/completions"
         mkdir -p "$COMPLETION_PATH"
-        "$INSTALL_DIR/config-diff" completion zsh > "$COMPLETION_PATH/_config-diff"
+        "$INSTALL_DIR/sdc-lite" completion zsh > "$COMPLETION_PATH/_sdc-lite"
         if ! grep -Fxq "fpath=($COMPLETION_PATH \$fpath)" "${HOME}/.zshrc"; then
             echo "fpath=($COMPLETION_PATH \$fpath)" >> "${HOME}/.zshrc"
             echo "autoload -Uz compinit && compinit" >> "${HOME}/.zshrc"
@@ -101,14 +101,14 @@ case "$SHELL_NAME" in
     fish)
         COMPLETION_PATH="${HOME}/.config/fish/completions"
         mkdir -p "$COMPLETION_PATH"
-        "$INSTALL_DIR/config-diff" completion fish > "$COMPLETION_PATH/config-diff.fish"
+        "$INSTALL_DIR/sdc-lite" completion fish > "$COMPLETION_PATH/sdc-lite.fish"
         ;;
     *)
         echo "⚠️  Shell completions not set up: unsupported shell ($SHELL_NAME)"
         ;;
 esac
 
-echo "✅ config-diff installed successfully!"
+echo "✅ sdc-lite installed successfully!"
 echo "ℹ️  Restart your shell or run 'source ~/.bashrc' / 'source ~/.zshrc' to enable completions."
-config-diff --version
+sdc-lite --version
 

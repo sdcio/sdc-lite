@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sdcio/config-diff/cmd/interfaces"
 	dsTypes "github.com/sdcio/data-server/pkg/tree/types"
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
 )
 
 type FlagsOutput struct {
