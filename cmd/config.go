@@ -7,19 +7,17 @@ import (
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
 	outFormatStr string
-	outFormat    types.ConfigFormat
 	targetName   string
 	path         string
 )
 
-// datastoreCmd represents the datastore command
+// configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:          "config",
 	Short:        "config based actions",
@@ -37,15 +35,6 @@ func init() {
 	if err != nil {
 		log.Error(err)
 	}
-}
-
-func parseConfigFormat() (types.ConfigFormat, error) {
-	var err error
-	outFormat, err = types.ParseConfigFormat(outFormatStr)
-	if err != nil {
-		return types.ConfigFormatUnknown, err
-	}
-	return outFormat, nil
 }
 
 func AddPathPersistentFlag(c *cobra.Command) error {

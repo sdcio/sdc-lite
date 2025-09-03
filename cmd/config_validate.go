@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -20,7 +19,7 @@ var configValidateCmd = &cobra.Command{
 		var err error
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)
@@ -54,5 +53,6 @@ var configValidateCmd = &cobra.Command{
 
 func init() {
 	configCmd.AddCommand(configValidateCmd)
+	AddPipelineCommandOutputFlags(configValidateCmd)
 	EnableFlagAndDisableFileCompletion(configValidateCmd)
 }

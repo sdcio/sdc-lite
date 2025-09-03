@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	dsTypes "github.com/sdcio/data-server/pkg/tree/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 )
 
 type Intent struct {
 	Name     string
 	Prio     int32
-	BasePath string
 	Flag     *dsTypes.UpdateInsertFlags
+	BasePath string // basepath for the config data (no filepath)
 	Format   ConfigFormat
 	Data     []byte
 }
@@ -52,6 +53,11 @@ func (i *Intent) GetFormat() ConfigFormat {
 	return i.Format
 }
 
+func (i *Intent) SetPrio(p int32) *Intent {
+	i.Prio = p
+	return i
+}
+
 func (i *Intent) SetData(format ConfigFormat, data []byte) *Intent {
 	i.Format = format
 	i.Data = data
@@ -62,9 +68,9 @@ func (i *Intent) String() string {
 	return fmt.Sprintf("Name: %s, Prio: %d, Flag: %s, Format: %s", i.GetName(), i.GetPrio(), i.GetFlag(), i.GetFormat())
 }
 
-func (i *Intent) Export() *IntentOutput {
+func (i *Intent) Export() *output.IntentOutput {
 
-	return &IntentOutput{
+	return &output.IntentOutput{
 		Name:     i.GetName(),
 		Priority: i.GetPrio(),
 		// Flags:    NewFlagsOutput(i.GetFlag()),
@@ -80,8 +86,8 @@ func (i *Intents) AddIntent(ii *Intent) {
 	(*i)[ii.GetName()] = ii
 }
 
-func (i Intents) Export() []*IntentOutput {
-	result := make([]*IntentOutput, 0, len(i))
+func (i Intents) Export() []*output.IntentOutput {
+	result := make([]*output.IntentOutput, 0, len(i))
 	for _, intent := range i {
 		result = append(result, intent.Export())
 	}

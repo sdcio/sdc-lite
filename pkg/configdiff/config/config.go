@@ -20,7 +20,7 @@ type Config struct {
 	schemaStore       store.Store
 }
 
-func NewConfig(opts ConfigOpts) (*Config, error) {
+func NewConfig(opts ...ConfigOpt) (*Config, error) {
 	var err error
 	// create an instance of the config
 	c := &Config{

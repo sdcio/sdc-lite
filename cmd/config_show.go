@@ -1,15 +1,15 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
-	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/spf13/cobra"
 )
 
@@ -22,23 +22,25 @@ var configShowCmd = &cobra.Command{
 	Use:          "show",
 	Short:        "show config",
 	SilenceUsage: true,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		var err error
-		outFormat, err = parseConfigFormat()
-		if err != nil {
-			return err
-		}
-		if path != "" {
-			outputAll = true
-		}
-		return nil
-	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		ctx := context.Background()
+		scr := params.NewConfigShowConfigRaw().SetAll(outputAll).SetOutputFormat(outFormatStr).SetPath(path)
+		scconfig, err := scr.ToConfigShowConfig()
+		if err != nil {
+			return err
+		}
+
+		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
+		if pipelineFile != "" {
+			pipel := pipeline.NewPipeline(pipelineFile)
+			pipel.AppendStep(scr)
+			return nil
+		}
+
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)
@@ -55,12 +57,7 @@ var configShowCmd = &cobra.Command{
 			return err
 		}
 
-		sdcpbPath, err := sdcpb.ParsePath(path)
-		if err != nil {
-			return err
-		}
-
-		data, err := cd.TreeGetString(ctx, outFormat, !outputAll, sdcpbPath)
+		data, err := cd.TreeGetString(ctx, scconfig)
 		if err != nil {
 			return err
 		}
@@ -76,5 +73,8 @@ func init() {
 	configShowCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configShowCmd.Flags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
 	AddPathPersistentFlag(configShowCmd)
+	AddPipelineCommandOutputFlags(configShowCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
+
+	params.GetCommandRegistry().Register(types.CommandTypeConfigShow, func() any { return params.NewConfigShowConfigRaw() })
 }

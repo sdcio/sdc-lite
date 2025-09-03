@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
@@ -69,7 +70,7 @@ func (c *ConfigDiffPersistence) intentsLoad(ctx context.Context) (err error) {
 
 	// load each intent into the tree
 	for _, intent := range intents {
-		err = c.TreeLoadData(ctx, intent)
+		err = c.TreeLoadData(ctx, params.NewConfigLoad(intent))
 		if err != nil {
 			return err
 		}
@@ -77,16 +78,16 @@ func (c *ConfigDiffPersistence) intentsLoad(ctx context.Context) (err error) {
 	return nil
 }
 
-func (c *ConfigDiffPersistence) TreeLoadData(ctx context.Context, intent *types.Intent) error {
-	err := c.target.AddIntent(intent)
+func (c *ConfigDiffPersistence) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) error {
+	err := c.target.AddIntent(cl.GetIntent())
 	if err != nil {
 		return err
 	}
-	return c.ConfigDiff.TreeLoadData(ctx, intent)
+	return c.ConfigDiff.TreeLoadData(ctx, cl)
 }
 
-func (c *ConfigDiffPersistence) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
-	schema, err := c.ConfigDiff.SchemaDownload(ctx, schemaDefinition)
+func (c *ConfigDiffPersistence) SchemaDownload(ctx context.Context, slc *params.SchemaLoadConfig) (*sdcpb.Schema, error) {
+	schema, err := c.ConfigDiff.SchemaDownload(ctx, slc)
 
 	c.schema = schema
 	c.target.SetSchema(schema)

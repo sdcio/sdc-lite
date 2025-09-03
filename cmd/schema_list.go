@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"context"
-
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/spf13/cobra"
 )
 
@@ -19,10 +17,10 @@ var SchemaListCmd = &cobra.Command{
 		var c *config.Config
 		var cd *configdiff.ConfigDiff
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
-		c, err = config.NewConfig(opts)
+		c, err = config.NewConfig(opts...)
 		if err != nil {
 			return err
 		}
@@ -37,7 +35,7 @@ var SchemaListCmd = &cobra.Command{
 			return err
 		}
 
-		outputSchemas := types.NewSchemaOutputList(schemas)
+		outputSchemas := output.NewSchemaOutputList(schemas)
 
 		err = WriteOutput(outputSchemas)
 		if err != nil {

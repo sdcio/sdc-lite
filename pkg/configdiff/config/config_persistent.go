@@ -25,7 +25,7 @@ type ConfigPersistent struct {
 }
 
 func NewConfigPersistent(opts ConfigOpts, optsP ConfigPersistentOpts) (*ConfigPersistent, error) {
-	c, err := NewConfig(opts)
+	c, err := NewConfig(opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -21,6 +21,7 @@ import (
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/diff"
 	"github.com/sdcio/sdc-lite/pkg/schemaclient"
 	"github.com/sdcio/sdc-lite/pkg/schemaloader"
@@ -116,13 +117,13 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 	return jrunTree, nil
 }
 
-func (c *ConfigDiff) GetDiff(ctx context.Context, dc *types.DiffConfig, path *sdcpb.Path) (string, error) {
+func (c *ConfigDiff) GetDiff(ctx context.Context, dc *params.DiffConfig) (string, error) {
 
-	runningJson, err := c.GetRunningJson(ctx, path)
+	runningJson, err := c.GetRunningJson(ctx, dc.GetPath())
 	if err != nil {
 		log.Warn(err)
 	}
-	treeJson, err := c.GetTreeJson(ctx, path)
+	treeJson, err := c.GetTreeJson(ctx, dc.GetPath())
 	if err != nil {
 		log.Warn(err)
 	}
@@ -200,14 +201,14 @@ func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
 	c.schema = s
 }
 
-func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
+func (c *ConfigDiff) SchemaDownload(ctx context.Context, slc *params.SchemaLoadConfig) (*sdcpb.Schema, error) {
 	schemaStore, err := c.loadSchemaStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	schemaDef := &invv1alpha1.Schema{}
-	if err := yaml.Unmarshal(schemaDefinition, &schemaDef); err != nil {
+	if err := yaml.Unmarshal(slc.GetSchema(), &schemaDef); err != nil {
 		return nil, err
 	}
 
@@ -223,6 +224,7 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 	// return in case of existence
 	if schemaExists {
 		log.Infof("Schema - Vendor: %s, Version: %s - Already Exists, Skip Loading", schemaDef.Spec.Provider, schemaDef.Spec.Version)
+		c.SetSchema(sdcpbSchema)
 		return sdcpbSchema, nil
 	}
 
@@ -255,12 +257,11 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Schema - Vendor: %s, Version: %s - Loaded Successful", rsp.Schema.Vendor, rsp.Schema.Version)
 
 	c.SetSchema(sdcpbSchema)
 
-	// TODO: cleanup Schemas Path
-	return nil, err
+	log.Infof("Schema - Vendor: %s, Version: %s - Loaded Successful", rsp.Schema.Vendor, rsp.Schema.Version)
+	return sdcpbSchema, nil
 }
 
 func (c *ConfigDiff) newTreeRoot(ctx context.Context) (*tree.RootEntry, error) {
@@ -305,7 +306,7 @@ func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool, path *
 	return cbv.GetResult(), nil
 }
 
-func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) error {
+func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) error {
 	var err error
 	var importer treeImporter.ImportConfigAdapter
 
@@ -315,6 +316,8 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 			return err
 		}
 	}
+
+	intent := cl.GetIntent()
 
 	switch intent.GetFormat() {
 	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
@@ -335,8 +338,8 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 	}
 
 	// overwrite running intent with running prio
-	if strings.EqualFold(intent.Name, tree.RunningIntentName) {
-		intent.Prio = tree.RunningValuesPrio
+	if strings.EqualFold(intent.GetName(), tree.RunningIntentName) {
+		intent.SetPrio(tree.RunningValuesPrio)
 	}
 
 	// convert base path to sdcpb.path
@@ -355,22 +358,22 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 	return nil
 }
 
-func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigFormat, onlyNewOrUpdated bool, path *sdcpb.Path) (string, error) {
+func (c *ConfigDiff) TreeGetString(ctx context.Context, config *params.ConfigShowConfig) (string, error) {
 	var err error
 	err = c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	entry, err := c.tree.NavigateSdcpbPath(ctx, path.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, config.GetPath().GetElem(), true)
 	if err != nil {
 		return "", err
 	}
 
 	result := ""
-	switch format {
+	switch config.GetOutputFormat() {
 	case types.ConfigFormatXml:
-		x, err := entry.ToXML(onlyNewOrUpdated, true, true, false)
+		x, err := entry.ToXML(config.GetAll(), true, true, false)
 		if err != nil {
 			return "", err
 		}
@@ -383,10 +386,10 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 		return result, nil
 	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
 		var j any
-		if format == types.ConfigFormatJson {
-			j, err = entry.ToJson(onlyNewOrUpdated)
+		if config.GetOutputFormat() == types.ConfigFormatJson {
+			j, err = entry.ToJson(config.GetAll())
 		} else {
-			j, err = entry.ToJsonIETF(onlyNewOrUpdated)
+			j, err = entry.ToJsonIETF(config.GetAll())
 		}
 		if err != nil {
 			return "", err
@@ -400,7 +403,7 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 		return result, nil
 	case types.ConfigFormatYaml:
 		var j any
-		j, err = entry.ToJson(onlyNewOrUpdated)
+		j, err = entry.ToJson(config.GetAll())
 		if err != nil {
 			return "", err
 		}
@@ -410,7 +413,7 @@ func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigForma
 		}
 		return string(byteDoc), nil
 	case types.ConfigFormatSdc:
-		return "", fmt.Errorf("output in %s format not supported", string(format))
+		return "", fmt.Errorf("output in %s format not supported", config.GetOutputFormat())
 	}
 	return "", nil
 }
@@ -471,7 +474,7 @@ func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path
 	for _, e := range childs {
 		em := e.GetChilds(tree.DescendMethodActiveChilds)
 		lvs := tree.LeafVariantSlice{}
-		lvs = em[attrName].GetHighestPrecedence(lvs, false, true)
+		lvs = em[attrName].GetHighestPrecedence(lvs, false, true, true)
 		elemVal := lvs[0].Update.Value().ToString()
 		if !strings.HasPrefix(elemVal, attrVal) {
 			continue

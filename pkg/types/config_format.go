@@ -16,6 +16,10 @@ const (
 	ConfigFormatSdc      ConfigFormat = "sdc"
 )
 
+func (c ConfigFormat) String() string {
+	return string(c)
+}
+
 // ConfigFormatsList List of all the known config formats
 var ConfigFormatsList = ConfigFormats{ConfigFormatJson, ConfigFormatJsonIetf, ConfigFormatXml, ConfigFormatSdc, ConfigFormatYaml}
 

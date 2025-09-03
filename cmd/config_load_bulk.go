@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +23,7 @@ var configLoadBulkCmd = &cobra.Command{
 		var err error
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)
@@ -42,7 +41,7 @@ var configLoadBulkCmd = &cobra.Command{
 		}
 
 		for _, configFile := range configurationFiles {
-			var intent *types.Intent
+			var intent *params.ConfigLoadRaw
 
 			configByte, err := os.ReadFile(configFile)
 			if err != nil {
@@ -58,11 +57,15 @@ var configLoadBulkCmd = &cobra.Command{
 				return err
 			}
 
-			err = cdp.TreeLoadData(ctx, intent)
+			i, err := intent.UnRaw()
 			if err != nil {
 				return err
 			}
-			fmt.Printf("File: %s - %s - successfully loaded\n", configFile, intent)
+			err = cdp.TreeLoadData(ctx, i)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("File: %s - %s - successfully loaded\n", configFile, intent.GetName())
 		}
 
 		err = cdp.Persist(ctx)

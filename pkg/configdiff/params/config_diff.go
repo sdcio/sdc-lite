@@ -1,19 +1,25 @@
-package types
+package params
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/types"
+	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 
 	"golang.org/x/term"
 )
 
 type DiffConfig struct {
 	diffType     DiffType
-	format       ConfigFormat
+	format       types.ConfigFormat
 	contextLines int
 	width        int
 	color        bool
 	showHeader   bool
+	path         *sdcpb.Path
 }
 
 func NewDiffConfig(dt DiffType) *DiffConfig {
@@ -25,45 +31,19 @@ func NewDiffConfig(dt DiffType) *DiffConfig {
 	}
 }
 
-func (d *DiffConfig) GetWidth() int {
-	if d.width == 0 {
-		width, _, err := term.GetSize(0)
-		if err != nil {
-			d.width = 160
-		}
-		d.width = width
-	}
-	return d.width
-}
-
-func (d *DiffConfig) SetConfig(c ConfigFormat) *DiffConfig {
+func (d *DiffConfig) SetConfig(c types.ConfigFormat) *DiffConfig {
 	d.format = c
 	return d
 }
 
-func (d *DiffConfig) GetFormat() ConfigFormat {
-	return d.format
-}
-
-func (d *DiffConfig) GetColor() bool {
-	return d.color
-}
-
-func (d *DiffConfig) GetDiffType() DiffType {
-	return d.diffType
-}
-
-func (d *DiffConfig) GetContextLines() int {
-	return d.contextLines
+func (d *DiffConfig) SetPath(p *sdcpb.Path) *DiffConfig {
+	d.path = p
+	return d
 }
 
 func (d *DiffConfig) SetWidth(w int) *DiffConfig {
 	d.width = w
 	return d
-}
-
-func (d *DiffConfig) GetShowHeader() bool {
-	return d.showHeader
 }
 
 func (d *DiffConfig) SetShowHeader(b bool) *DiffConfig {
@@ -79,6 +59,52 @@ func (d *DiffConfig) SetContextLines(l int) *DiffConfig {
 func (d *DiffConfig) SetColor(b bool) *DiffConfig {
 	d.color = b
 	return d
+}
+
+func (d *DiffConfig) GetPath() *sdcpb.Path {
+	return d.path
+}
+
+func (d *DiffConfig) GetWidth() int {
+	if d.width == 0 {
+		width, _, err := term.GetSize(0)
+		if err != nil {
+			d.width = 160
+		}
+		d.width = width
+	}
+	return d.width
+}
+
+func (d *DiffConfig) GetFormat() types.ConfigFormat {
+	return d.format
+}
+
+func (d *DiffConfig) GetColor() bool {
+	return d.color
+}
+
+func (d *DiffConfig) GetDiffType() DiffType {
+	return d.diffType
+}
+
+func (d *DiffConfig) GetContextLines() int {
+	return d.contextLines
+}
+
+func (d *DiffConfig) GetShowHeader() bool {
+	return d.showHeader
+}
+
+func (d *DiffConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
+	// TODO: fix this
+	diff, err := cde.GetDiff(ctx, d)
+	fmt.Println(diff)
+	return nil, err
+}
+
+func (d *DiffConfig) String() string {
+	return types.CommandTypeConfigDiff
 }
 
 type DiffType string

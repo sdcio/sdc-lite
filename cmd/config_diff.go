@@ -1,22 +1,21 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/types"
-	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
 	difftypeStr  string
-	difftype     types.DiffType
+	difftype     params.DiffType
 	contextLines int
 	noColor      bool
 )
@@ -26,26 +25,19 @@ var configDiffCmd = &cobra.Command{
 	Use:          "diff",
 	Short:        "diff config with running",
 	SilenceUsage: true,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		var err error
-
-		outFormat, err = parseConfigFormat()
-		if err != nil {
-			return err
-		}
-
-		difftype, err = types.ParseDiffType(difftypeStr)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
+
+		dconf := params.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
+		// turn raw config into actual config
+		dc, err := dconf.UnRaw()
+		if err != nil {
+			return err
+		}
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)
@@ -62,12 +54,8 @@ var configDiffCmd = &cobra.Command{
 			return err
 		}
 
-		sdcpbPath, err := sdcpb.ParsePath(path)
-		if err != nil {
-			return err
-		}
-
-		result, err := cd.GetDiff(ctx, types.NewDiffConfig(difftype).SetContextLines(contextLines).SetColor(!noColor).SetConfig(types.ConfigFormat(outFormatStr)), sdcpbPath)
+		// execute the diff
+		result, err := cd.GetDiff(ctx, dc)
 		if err != nil {
 			return err
 		}
@@ -80,16 +68,17 @@ var configDiffCmd = &cobra.Command{
 
 func init() {
 	configCmd.AddCommand(configDiffCmd)
-	configDiffCmd.Flags().StringVar(&difftypeStr, "type", "side-by-side-patch", fmt.Sprintf("difftype, one of %s", strings.Join(types.DiffTypeList.StringSlice(), ", ")))
+	configDiffCmd.Flags().StringVar(&difftypeStr, "type", "side-by-side-patch", fmt.Sprintf("difftype, one of %s", strings.Join(params.DiffTypeList.StringSlice(), ", ")))
 	configDiffCmd.Flags().IntVar(&contextLines, "context", 2, "number of context lines in patch based diffs")
 	configDiffCmd.Flags().BoolVar(&noColor, "no-color", false, "non colorized output")
 	configDiffCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	AddPathPersistentFlag(configDiffCmd)
+	AddPipelineCommandOutputFlags(configDiffCmd)
 	EnableFlagAndDisableFileCompletion(configDiffCmd)
 
 	// Register autocompletion for the diff type flag
 	err := configDiffCmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return types.DiffTypeList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
+		return params.DiffTypeList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		logrus.Error(err)
