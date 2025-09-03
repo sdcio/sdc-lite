@@ -471,7 +471,7 @@ func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path
 	for _, e := range childs {
 		em := e.GetChilds(tree.DescendMethodActiveChilds)
 		lvs := tree.LeafVariantSlice{}
-		lvs = em[attrName].GetHighestPrecedence(lvs, false, true)
+		lvs = em[attrName].GetHighestPrecedence(lvs, false, true, false)
 		elemVal := lvs[0].Update.Value().ToString()
 		if !strings.HasPrefix(elemVal, attrVal) {
 			continue

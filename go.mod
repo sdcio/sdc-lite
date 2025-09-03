@@ -6,22 +6,17 @@ toolchain go1.24.3
 
 replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 
-replace (
-	github.com/sdcio/data-server => /home/mava/projects/data-server
-	github.com/sdcio/sdc-protos => /home/mava/projects/sdc-protos
-)
-
 require (
 	github.com/beevik/etree v1.5.1
 	github.com/sdcio/config-server v0.0.53
-	github.com/sdcio/data-server v0.0.62
+	github.com/sdcio/data-server v0.0.63
 	github.com/sdcio/schema-server v0.0.31
-	github.com/sdcio/sdc-protos v0.0.44
+	github.com/sdcio/sdc-protos v0.0.45
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	golang.org/x/term v0.34.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.8
 	k8s.io/apimachinery v0.33.3
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -120,9 +115,9 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250528174236-200df99c418a // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/grpc v1.74.2 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/grpc v1.75.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
