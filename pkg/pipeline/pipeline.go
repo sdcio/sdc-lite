@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
 
@@ -51,8 +53,7 @@ func (p *Pipeline) Run(ctx context.Context) error {
 
 	step := 1
 	for {
-
-		var envelope params.JsonRpcMessageRaw
+		envelope := &params.JsonRpcMessageRaw{}
 		if err := jd.Decode(envelope); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -78,11 +79,11 @@ func (p *Pipeline) Run(ctx context.Context) error {
 			return err
 		}
 
+		fmt.Fprintf(os.Stderr, "executing step: %d - %s\n", step, cmd.String())
 		output, err := cmd.Run(ctx, cd)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "executing step: %d - %s\n", step, cmd.String())
 		if output != nil {
 			fmt.Println(output.ToStringDetails())
 		}
@@ -93,35 +94,18 @@ func (p *Pipeline) Run(ctx context.Context) error {
 }
 
 func (p *Pipeline) AppendStep(s PipelineStep) error {
-
-	var rawEntries []json.RawMessage
-
-	// Read file
-	data, err := os.ReadFile(p.filename)
-	if err == nil && len(data) > 0 {
-		// File exists and not empty → unmarshal
-		if err := json.Unmarshal(data, &rawEntries); err != nil {
-			return err
-		}
-	} else if err != nil && !os.IsNotExist(err) {
-		// Some other error (permissions, etc.)
-		return err
-	}
-
-	newRaw, err := json.Marshal(s)
+	f, err := os.OpenFile(p.filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	rawEntries = append(rawEntries, newRaw)
+	defer f.Close()
 
-	// Marshal back
-	newData, err := json.MarshalIndent(rawEntries, "", "  ")
-	if err != nil {
-		return err
-	}
+	// wrap in the JsonRPCHeader
+	jrpcr := params.NewJsonRpcMessage(s.GetMethod(), rand.Int(), s)
 
-	// Save back to file
-	if err := os.WriteFile(p.filename, newData, 0644); err != nil {
+	// json encode and write to file
+	enc := json.NewEncoder(f)
+	if err := enc.Encode(jrpcr); err != nil {
 		return err
 	}
 	return nil
@@ -129,4 +113,5 @@ func (p *Pipeline) AppendStep(s PipelineStep) error {
 
 type PipelineStep interface {
 	UnRaw() (params.RunCommand, error)
+	GetMethod() types.CommandType
 }

@@ -90,7 +90,7 @@ func (i *ConfigLoadRaw) GetBasePath() string {
 	return i.BasePath
 }
 
-func (i *ConfigLoadRaw) UnRaw() (*ConfigLoad, error) {
+func (i *ConfigLoadRaw) UnRaw() (RunCommand, error) {
 	cf, err := types.ParseConfigFormat(i.Format)
 	if err != nil {
 		return nil, err

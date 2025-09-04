@@ -3,6 +3,7 @@ package params
 import (
 	"strings"
 
+	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
 
@@ -37,6 +38,10 @@ func (s *SchemaLoadConfigRaw) SetData(data []byte) *SchemaLoadConfigRaw {
 	return s
 }
 
+func (s *SchemaLoadConfigRaw) GetMethod() types.CommandType {
+	return types.CommandTypeSchemaLoad
+}
+
 func (s *SchemaLoadConfigRaw) UnRaw() (RunCommand, error) {
 	var err error
 	result := NewSchemaLoadConfig()
@@ -54,13 +59,3 @@ func (s *SchemaLoadConfigRaw) UnRaw() (RunCommand, error) {
 	result.SetSchema(data)
 	return result, nil
 }
-
-// func SchemaLoadUnmarshal(raw json.RawMessage) (RunCommand, error) {
-// 	schemaLoadRaw := &SchemaLoadConfigRaw{}
-// 	err := json.Unmarshal(raw, schemaLoadRaw)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return schemaLoadRaw.ToSchemaLoadConfig()
-// }

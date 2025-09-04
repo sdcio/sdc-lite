@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	cdtypes "github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -21,32 +21,23 @@ var configValidateCmd = &cobra.Command{
 
 		ctx := cmd.Context()
 
+		rawParam := &params.ConfigValidateRaw{}
+
+		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
+		if pipelineFile != "" {
+			return AppendToPipelineFile(pipelineFile, rawParam)
+		}
+
 		opts := config.ConfigOpts{}
-		c, err := config.NewConfigPersistent(opts, optsP)
+		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)
 		if err != nil {
 			return err
 		}
 
-		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
+		err = WriteOutput(out)
 		if err != nil {
 			return err
 		}
-		err = cd.InitTargetFolder(ctx)
-		if err != nil {
-			return err
-		}
-		valResult, valStats, err := cd.TreeValidate(ctx)
-		if err != nil {
-			return err
-		}
-
-		vs := cdtypes.NewValidationStatsOutput(targetName, valResult, valStats)
-
-		err = WriteOutput(vs)
-		if err != nil {
-			return err
-		}
-
 		return nil
 	},
 }
@@ -55,4 +46,5 @@ func init() {
 	configCmd.AddCommand(configValidateCmd)
 	AddPipelineCommandOutputFlags(configValidateCmd)
 	EnableFlagAndDisableFileCompletion(configValidateCmd)
+	params.GetCommandRegistry().Register(types.CommandTypeConfigValidate, func() params.RpcRawParams { return params.NewConfigValidateRaw() })
 }

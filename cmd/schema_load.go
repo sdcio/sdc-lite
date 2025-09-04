@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
@@ -35,38 +34,17 @@ var SchemaLoadCmd = &cobra.Command{
 			return nil
 		}
 
-		log.Infof("Schema - Loading Start")
-		slc, err := slcRaw.ToSchemaLoadConfig()
-		if err != nil {
-			return err
-		}
-
 		opts := config.ConfigOpts{
 			// config.WithSchemaDefinition(schemaDefinitionFile),
 			config.WithSchemaPathCleanup(schemaPathCleanup),
 		}
 		optsP = append(optsP, config.WithTargetName(targetName))
-		c, err := config.NewConfigPersistent(opts, optsP)
-		if err != nil {
-			return err
-		}
 
-		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
+		out, err := RunFromRaw(ctx, opts, optsP, true, slcRaw)
 		if err != nil {
 			return err
 		}
-		err = cd.InitTargetFolder(ctx)
-		if err != nil {
-			return err
-		}
-
-		// download the given schema
-		_, err = cd.SchemaDownload(ctx, slc)
-		if err != nil {
-			return err
-		}
-
-		err = cd.Persist(ctx)
+		err = WriteOutput(out)
 		if err != nil {
 			return err
 		}

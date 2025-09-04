@@ -12,7 +12,6 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
-	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 	"github.com/spf13/cobra"
@@ -37,18 +36,9 @@ var configLoadCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
-		c, err := config.NewConfigPersistent(opts, optsP)
-		if err != nil {
-			return err
-		}
 
-		cdp, err := configdiff.NewConfigDiffPersistence(ctx, c)
-		if err != nil {
-			return err
-		}
-
-		intentRaw := params.NewConfigLoadRaw()
-		intentRaw.SetFormat(configurationFileFormatStr).SetFile(configurationFile).SetFlags(&params.UpdateInsertFlagsRaw{})
+		rawParam := params.NewConfigLoadRaw()
+		rawParam.SetFormat(configurationFileFormatStr).SetFile(configurationFile).SetFlags(&params.UpdateInsertFlagsRaw{})
 
 		configFormat, err := types.ParseConfigFormat(configurationFileFormatStr)
 		if err != nil {
@@ -65,10 +55,10 @@ var configLoadCmd = &cobra.Command{
 		case types.ConfigFormatJson, types.ConfigFormatJsonIetf, types.ConfigFormatXml:
 			// TODO:
 			// lc.SetFlags()
-			intentRaw.SetName(intentName).SetPrio(priority)
+			rawParam.SetName(intentName).SetPrio(priority)
 			// if data is comming from stdin, store it in data
 			if strings.TrimSpace(configurationFile) == "-" {
-				intentRaw.SetData(configByte)
+				rawParam.SetData(configByte)
 			}
 		case types.ConfigFormatSdc:
 
@@ -76,7 +66,18 @@ var configLoadCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			intentRaw, err = ConvertSDCConfigToInternalIntent(ctx, cdp.ConfigDiff, sdcC)
+
+			c, err := config.NewConfigPersistent(opts, optsP)
+			if err != nil {
+				return err
+			}
+
+			cdp, err := configdiff.NewConfigDiffPersistence(ctx, c)
+			if err != nil {
+				return err
+			}
+
+			rawParam, err = ConvertSDCConfigToInternalIntent(ctx, cdp.ConfigDiff, sdcC)
 			if err != nil {
 				return err
 			}
@@ -84,32 +85,18 @@ var configLoadCmd = &cobra.Command{
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if pipelineFile != "" {
-			pipel := pipeline.NewPipeline(pipelineFile)
-			pipel.AppendStep(intentRaw)
-			return nil
+			return AppendToPipelineFile(pipelineFile, rawParam)
 		}
 
-		err = cdp.InitTargetFolder(ctx)
+		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)
 		if err != nil {
 			return err
 		}
 
-		configLoad, err := intentRaw.UnRaw()
+		err = WriteOutput(out)
 		if err != nil {
 			return err
 		}
-
-		err = cdp.TreeLoadData(ctx, configLoad)
-		if err != nil {
-			return err
-		}
-
-		err = cdp.Persist(ctx)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("File: %s - %s - successfully loaded\n", configurationFile, configLoad)
 
 		return nil
 	},
@@ -143,9 +130,9 @@ func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {
 	return sdcC, nil
 }
 
-func ConvertSDCConfigToInternalIntent(ctx context.Context, cdp *configdiff.ConfigDiff, sdcConfig *v1alpha1.Config) (*params.ConfigLoadRaw, error) {
+func ConvertSDCConfigToInternalIntent(ctx context.Context, cd *configdiff.ConfigDiff, sdcConfig *v1alpha1.Config) (*params.ConfigLoadRaw, error) {
 	// create a new config diff instance that we can use to aggregate the multiple path / values from the cr spec
-	cd, err := cdp.CopyEmptyConfigDiff(ctx)
+	cdNew, err := cd.CopyEmptyConfigDiff(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -159,13 +146,13 @@ func ConvertSDCConfigToInternalIntent(ctx context.Context, cdp *configdiff.Confi
 		}
 		intent.SetData(types.ConfigFormatJson, jsonConfigVal).SetBasePath(c.Path)
 
-		err = cd.TreeLoadData(ctx, params.NewConfigLoad(intent))
+		err = cdNew.TreeLoadData(ctx, params.NewConfigLoad(intent))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	jsonConf, err := cd.GetJson(false)
+	jsonConf, err := cdNew.GetJson(false)
 	if err != nil {
 		return nil, err
 	}

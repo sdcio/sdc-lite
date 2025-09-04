@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/types"
@@ -32,35 +31,23 @@ var configDiffCmd = &cobra.Command{
 
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		dconf := params.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
-		// turn raw config into actual config
-		dc, err := dconf.UnRaw()
-		if err != nil {
-			return err
+		rawParam := params.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
+
+		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
+		if pipelineFile != "" {
+			return AppendToPipelineFile(pipelineFile, rawParam)
 		}
 
 		opts := config.ConfigOpts{}
-		c, err := config.NewConfigPersistent(opts, optsP)
+		out, err := RunFromRaw(ctx, opts, optsP, false, rawParam)
 		if err != nil {
 			return err
 		}
 
-		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
+		err = WriteOutput(out)
 		if err != nil {
 			return err
 		}
-		err = cd.InitTargetFolder(ctx)
-		if err != nil {
-			return err
-		}
-
-		// execute the diff
-		result, err := cd.GetDiff(ctx, dc)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(result)
 
 		return nil
 	},

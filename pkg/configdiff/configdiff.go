@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -32,10 +33,11 @@ import (
 )
 
 type ConfigDiff struct {
-	config      *config.Config
-	tree        *tree.RootEntry
-	schema      *sdcpb.Schema
-	schemaStore store.Store
+	config          *config.Config
+	tree            *tree.RootEntry
+	schema          *sdcpb.Schema
+	schemaStore     store.Store
+	schemaStoreIsRO bool
 }
 
 func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
@@ -142,12 +144,25 @@ func (c *ConfigDiff) SetSchemaStore(s store.Store) {
 	c.schemaStore = s
 }
 
-func (c *ConfigDiff) loadSchemaStore(ctx context.Context) (store.Store, error) {
-	if c.schemaStore != nil {
+func (c *ConfigDiff) closeSchemaStore() error {
+	err := c.schemaStore.Close()
+	c.schemaStore = nil
+	return err
+}
+
+func (c *ConfigDiff) loadSchemaStore(ctx context.Context, readOnly bool, vendor string, version string) (store.Store, error) {
+	if c.schemaStore != nil && c.schemaStoreIsRO == readOnly {
 		return c.schemaStore, nil
 	}
-	s, err := persiststore.New(ctx, c.config.SchemaStorePath(), &schemaSrvConf.SchemaPersistStoreCacheConfig{
+	if c.schemaStore != nil {
+		err := c.schemaStore.Close()
+		if err != nil {
+			// TODO log error
+		}
+	}
+	s, err := persiststore.New(ctx, filepath.Join(c.config.SchemaStorePath(), strings.ToLower(vendor), strings.ToLower(version)), &schemaSrvConf.SchemaPersistStoreCacheConfig{
 		WithDescription: false,
+		ReadOnly:        readOnly,
 	})
 	if err != nil {
 		return nil, err
@@ -167,16 +182,7 @@ func (c *ConfigDiff) SchemaRemove(ctx context.Context, vendor string, version st
 	if version == "" {
 		return fmt.Errorf("version must not be empty")
 	}
-	store, err := c.loadSchemaStore(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = store.DeleteSchema(ctx, &sdcpb.DeleteSchemaRequest{
-		Schema: &sdcpb.Schema{
-			Vendor:  vendor,
-			Version: version,
-		},
-	})
+	err := os.RemoveAll(filepath.Join(c.config.SchemaStorePath(), vendor, version))
 	return err
 }
 
@@ -185,16 +191,34 @@ func (c *ConfigDiff) HasSchema() bool {
 }
 
 func (c *ConfigDiff) SchemasList(ctx context.Context) ([]*sdcpb.Schema, error) {
-	store, err := c.loadSchemaStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	lsr, err := store.ListSchema(ctx, &sdcpb.ListSchemaRequest{})
+	vendors, err := os.ReadDir(c.config.SchemaStorePath())
 	if err != nil {
 		return nil, err
 	}
 
-	return lsr.Schema, nil
+	schemas := []*sdcpb.Schema{}
+
+	for _, vendor := range vendors {
+		if !vendor.IsDir() {
+			continue
+		}
+
+		vendorPath := filepath.Join(c.config.SchemaStorePath(), vendor.Name())
+
+		versions, err := os.ReadDir(vendorPath)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, version := range versions {
+			if !version.IsDir() {
+				continue
+			}
+			schemas = append(schemas, &sdcpb.Schema{Vendor: vendor.Name(), Version: version.Name()})
+		}
+	}
+
+	return schemas, nil
 }
 
 func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
@@ -202,24 +226,26 @@ func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
 }
 
 func (c *ConfigDiff) SchemaDownload(ctx context.Context, slc *params.SchemaLoadConfig) (*sdcpb.Schema, error) {
-	schemaStore, err := c.loadSchemaStore(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	schemaDef := &invv1alpha1.Schema{}
 	if err := yaml.Unmarshal(slc.GetSchema(), &schemaDef); err != nil {
 		return nil, err
 	}
 
-	// check if the schema already exists
-	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
-
 	sdcpbSchema := &sdcpb.Schema{
 		Name:    "",
 		Vendor:  schemaDef.Spec.Provider,
 		Version: schemaDef.Spec.Version,
 	}
+
+	schemaStore, err := c.loadSchemaStore(ctx, false, schemaDef.Spec.Provider, schemaDef.Spec.Version)
+	if err != nil {
+		return nil, err
+	}
+	defer c.closeSchemaStore()
+
+	// check if the schema already exists
+	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
 
 	// return in case of existence
 	if schemaExists {
@@ -265,7 +291,7 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, slc *params.SchemaLoadC
 }
 
 func (c *ConfigDiff) newTreeRoot(ctx context.Context) (*tree.RootEntry, error) {
-	schemaStore, err := c.loadSchemaStore(ctx)
+	schemaStore, err := c.loadSchemaStore(ctx, true, c.schema.GetVendor(), c.schema.GetVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -284,11 +310,11 @@ func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
 	return err
 }
 
-func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool, path *sdcpb.Path) (*sdcpb.BlameTreeElement, error) {
-	cbv := tree.NewBlameConfigVisitor(includeDefaults)
-	if path != nil {
+func (c *ConfigDiff) TreeBlame(ctx context.Context, params *params.ConfigBlameParams) (*sdcpb.BlameTreeElement, error) {
+	cbv := tree.NewBlameConfigVisitor(params.GetIncludeDefaults())
+	if params.GetPath() != nil {
 		// process with a provided path
-		start, err := c.tree.NavigateSdcpbPath(ctx, path.Elem, true)
+		start, err := c.tree.NavigateSdcpbPath(ctx, params.GetPath().GetElem(), true)
 		if err != nil {
 			return nil, err
 		}
