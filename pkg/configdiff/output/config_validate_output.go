@@ -27,13 +27,13 @@ func (cvo *ConfigValidateOutput) ToString() string {
 	sb := &strings.Builder{}
 
 	if cvo.result.HasErrors() {
-		fmt.Fprintf(sb, "Errors:\n", strings.Join(cvo.result.ErrorsStr(), "\n"))
+		fmt.Fprintf(sb, "Errors:\n%s", strings.Join(cvo.result.ErrorsStr(), "\n"))
 	} else {
 		fmt.Fprintln(sb, "Successfully validated!")
 	}
 
 	if cvo.result.HasWarnings() {
-		fmt.Fprintf(sb, "Warnings:\n", strings.Join(cvo.result.WarningsStr(), "\n"))
+		fmt.Fprintf(sb, "Warnings:\n%s", strings.Join(cvo.result.WarningsStr(), "\n"))
 	}
 
 	return sb.String()

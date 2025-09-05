@@ -10,6 +10,7 @@ const (
 	CommandTypeConfigBlame    = "config-blame"
 	CommandTypeConfigValidate = "config-validate"
 	CommandTypeSchemaLoad     = "schema-load"
+	CommandTypePipelineStop   = "pipeline-stop"
 )
 
 func (c CommandType) String() string {
@@ -30,6 +31,8 @@ func ParseCommandType(s string) CommandType {
 		return CommandTypeConfigLoad
 	case CommandTypeSchemaLoad:
 		return CommandTypeSchemaLoad
+	case CommandTypePipelineStop:
+		return CommandTypePipelineStop
 	}
 	return CommandTypeUnknown
 }

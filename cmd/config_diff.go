@@ -14,7 +14,6 @@ import (
 
 var (
 	difftypeStr  string
-	difftype     params.DiffType
 	contextLines int
 	noColor      bool
 )

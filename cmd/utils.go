@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"context"
 
@@ -70,6 +71,18 @@ func RunFromRaw(ctx context.Context, opts config.ConfigOpts, optsP config.Config
 }
 
 func AppendToPipelineFile(pipelineFile string, ps pipeline.PipelineStep) error {
-	pipel := pipeline.NewPipeline(pipelineFile)
-	return pipel.AppendStep(ps)
+	var out *os.File
+	var err error
+	switch strings.TrimSpace(pipelineFile) {
+	case "-":
+		out = os.Stdout
+	default:
+		out, err = os.OpenFile(pipelineFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+	}
+
+	return pipeline.PipelineAppendStep(out, ps)
 }

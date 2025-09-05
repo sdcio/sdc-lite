@@ -32,15 +32,12 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	// Check if file exists
 	fw := utils.NewFileWrapper(p.filename)
 
-	readCloser, err := fw.ReadCloser()
+	cmdReg := params.GetCommandRegistry()
+
+	fileRC, err := fw.ReadCloser()
 	if err != nil {
 		return err
 	}
-	defer readCloser.Close()
-
-	cmdReg := params.GetCommandRegistry()
-
-	jd := json.NewDecoder(readCloser)
 
 	cdc, err := config.NewConfig()
 	if err != nil {
@@ -51,14 +48,44 @@ func (p *Pipeline) Run(ctx context.Context) error {
 		return err
 	}
 
+	jd := json.NewDecoder(fileRC)
+
+	fi, err := os.Stat(p.filename)
+	if err != nil {
+		return err
+	}
+
+	isFIFO := (fi.Mode() & os.ModeNamedPipe) != 0
+
 	step := 1
 	for {
 		envelope := &params.JsonRpcMessageRaw{}
 		if err := jd.Decode(envelope); err != nil {
 			if errors.Is(err, io.EOF) {
-				break
+				if isFIFO {
+					// Reopen FIFO and wait for new writer
+					fileRC.Close()
+					fileRC, err = fw.ReadCloser()
+					if err != nil {
+						return err
+					}
+					jd = json.NewDecoder(fileRC)
+					continue
+				} else {
+					err = fileRC.Close()
+					if err != nil {
+						return err
+					}
+					break
+				}
 			}
 			return err
+		}
+
+		// stop command stops the pipeline
+		if envelope.Method == types.CommandTypePipelineStop {
+			fmt.Fprintln(os.Stderr, "stop command received, closing!")
+			break
 		}
 
 		factory, err := cmdReg.GetCommandFactory(envelope.Method)
@@ -93,18 +120,13 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	return nil
 }
 
-func (p *Pipeline) AppendStep(s PipelineStep) error {
-	f, err := os.OpenFile(p.filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func PipelineAppendStep(file *os.File, s PipelineStep) error {
 
 	// wrap in the JsonRPCHeader
 	jrpcr := params.NewJsonRpcMessage(s.GetMethod(), rand.Int(), s)
 
 	// json encode and write to file
-	enc := json.NewEncoder(f)
+	enc := json.NewEncoder(file)
 	if err := enc.Encode(jrpcr); err != nil {
 		return err
 	}

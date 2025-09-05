@@ -25,6 +25,11 @@ func (d *DiffConfigRaw) SetConfig(c string) *DiffConfigRaw {
 	return d
 }
 
+func (d *DiffConfigRaw) SetDiffType(dt string) *DiffConfigRaw {
+	d.DiffType = dt
+	return d
+}
+
 func (d *DiffConfigRaw) SetPath(p string) *DiffConfigRaw {
 	d.Path = p
 	return d

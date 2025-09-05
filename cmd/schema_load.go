@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
-	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,14 +23,12 @@ var SchemaLoadCmd = &cobra.Command{
 
 		ctx := cmd.Context()
 
-		slcRaw := params.NewSchemaLoadConfigRaw()
-		slcRaw.SetFile(schemaDefinitionFile)
+		rawParam := params.NewSchemaLoadConfigRaw()
+		rawParam.SetFile(schemaDefinitionFile)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if pipelineFile != "" {
-			pipel := pipeline.NewPipeline(pipelineFile)
-			pipel.AppendStep(slcRaw)
-			return nil
+			return AppendToPipelineFile(pipelineFile, rawParam)
 		}
 
 		opts := config.ConfigOpts{
@@ -40,7 +37,7 @@ var SchemaLoadCmd = &cobra.Command{
 		}
 		optsP = append(optsP, config.WithTargetName(targetName))
 
-		out, err := RunFromRaw(ctx, opts, optsP, true, slcRaw)
+		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)
 		if err != nil {
 			return err
 		}
