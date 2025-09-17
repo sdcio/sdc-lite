@@ -15,7 +15,7 @@ func NewConfigBlameParamsRaw() *ConfigBlameParamsRaw {
 }
 
 func (c *ConfigBlameParamsRaw) GetMethod() types.CommandType {
-	return types.CommandTypeConfigDiff
+	return types.CommandTypeConfigBlame
 }
 
 func (c *ConfigBlameParamsRaw) SetPath(p string) *ConfigBlameParamsRaw {

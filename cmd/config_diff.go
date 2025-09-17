@@ -7,6 +7,7 @@ import (
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,8 +34,8 @@ var configDiffCmd = &cobra.Command{
 		rawParam := params.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
-		if pipelineFile != "" {
-			return AppendToPipelineFile(pipelineFile, rawParam)
+		if rpcOutput {
+			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
 
 		opts := config.ConfigOpts{}
@@ -59,7 +60,7 @@ func init() {
 	configDiffCmd.Flags().BoolVar(&noColor, "no-color", false, "non colorized output")
 	configDiffCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	AddPathPersistentFlag(configDiffCmd)
-	AddPipelineCommandOutputFlags(configDiffCmd)
+	AddRpcOutputFlag(configDiffCmd)
 	EnableFlagAndDisableFileCompletion(configDiffCmd)
 
 	// Register autocompletion for the diff type flag

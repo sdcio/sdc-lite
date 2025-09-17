@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
@@ -28,58 +29,80 @@ func NewPipeline(filename string) *Pipeline {
 	return result
 }
 
-func (p *Pipeline) Run(ctx context.Context) error {
+func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
+	defer close(outputChan)
 	// Check if file exists
 	fw := utils.NewFileWrapper(p.filename)
 
 	cmdReg := params.GetCommandRegistry()
 
-	fileRC, err := fw.ReadCloser()
+	fileRC, err := fw.ReadCloser(ctx)
 	if err != nil {
-		return err
+		outputChan <- NewPipelineResultError(0, err)
+		return
 	}
 
 	cdc, err := config.NewConfig()
 	if err != nil {
-		return err
+		outputChan <- NewPipelineResultError(0, err)
+		return
 	}
 	cd, err := configdiff.NewConfigDiff(ctx, cdc)
 	if err != nil {
-		return err
+		outputChan <- NewPipelineResultError(0, err)
+		return
 	}
 
 	jd := json.NewDecoder(fileRC)
 
-	fi, err := os.Stat(p.filename)
-	if err != nil {
-		return err
-	}
+	isFIFO := false
+	if strings.TrimSpace(p.filename) != "-" && strings.TrimSpace(p.filename) != "" {
+		fi, err := os.Stat(p.filename)
+		if err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
 
-	isFIFO := (fi.Mode() & os.ModeNamedPipe) != 0
+		isFIFO = (fi.Mode() & os.ModeNamedPipe) != 0
+	}
 
 	step := 1
 	for {
+
+		// context cancellation check
+		select {
+		case <-ctx.Done():
+			outputChan <- NewPipelineResultError(0, ctx.Err())
+			return
+		default:
+		}
+
 		envelope := &params.JsonRpcMessageRaw{}
 		if err := jd.Decode(envelope); err != nil {
 			if errors.Is(err, io.EOF) {
 				if isFIFO {
 					// Reopen FIFO and wait for new writer
 					fileRC.Close()
-					fileRC, err = fw.ReadCloser()
+					fileRC, err = fw.ReadCloser(ctx)
 					if err != nil {
-						return err
+						outputChan <- NewPipelineResultError(0, err)
+						return
 					}
+					// re-create the decoder
 					jd = json.NewDecoder(fileRC)
+					// start all over waiting for the next incomming rpc
 					continue
 				} else {
 					err = fileRC.Close()
 					if err != nil {
-						return err
+						outputChan <- NewPipelineResultError(0, err)
+						return
 					}
 					break
 				}
 			}
-			return err
+			outputChan <- NewPipelineResultError(0, err)
+			return
 		}
 
 		// stop command stops the pipeline
@@ -90,34 +113,36 @@ func (p *Pipeline) Run(ctx context.Context) error {
 
 		factory, err := cmdReg.GetCommandFactory(envelope.Method)
 		if err != nil {
-			return err
+			outputChan <- NewPipelineResultError(envelope.Id, err)
+			return
 		}
 
 		params := factory()
 
 		// Unmarshal params only
 		if err := json.Unmarshal(envelope.Params, params); err != nil {
-			return err
+			outputChan <- NewPipelineResultError(envelope.Id, err)
+			return
 		}
 
 		// Execute command
 		cmd, err := params.UnRaw()
 		if err != nil {
-			return err
+			outputChan <- NewPipelineResultError(envelope.Id, err)
+			return
 		}
 
 		fmt.Fprintf(os.Stderr, "executing step: %d - %s\n", step, cmd.String())
 		output, err := cmd.Run(ctx, cd)
 		if err != nil {
-			return err
+			outputChan <- NewPipelineResultError(envelope.Id, err)
+			return
 		}
-		if output != nil {
-			fmt.Println(output.ToStringDetails())
-		}
+
+		outputChan <- NewPipelineResultOutput(envelope.Id, output)
+
 		step++
 	}
-
-	return nil
 }
 
 func PipelineAppendStep(file *os.File, s PipelineStep) error {

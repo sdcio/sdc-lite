@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -12,17 +13,19 @@ type BlameResultOutput struct {
 	*sdcpb.BlameTreeElement
 }
 
+var _ interfaces.Output = (*BlameResultOutput)(nil)
+
 func NewBlameResultOutput(e *sdcpb.BlameTreeElement) *BlameResultOutput {
 	return &BlameResultOutput{
 		BlameTreeElement: e,
 	}
 }
 
-func (b *BlameResultOutput) ToString() string {
-	return fmt.Sprintln(b.BlameTreeElement.ToString())
+func (b *BlameResultOutput) ToString() (string, error) {
+	return fmt.Sprintln(b.BlameTreeElement.ToString()), nil
 }
 
-func (b *BlameResultOutput) ToStringDetails() string {
+func (b *BlameResultOutput) ToStringDetails() (string, error) {
 	return b.ToString()
 }
 
@@ -40,4 +43,8 @@ func (b *BlameResultOutput) WriteToJson(w io.Writer) error {
 		return err
 	}
 	return nil
+}
+
+func (b *BlameResultOutput) ToStruct() (any, error) {
+	return b, nil
 }

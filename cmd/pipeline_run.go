@@ -1,9 +1,14 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/spf13/cobra"
 )
+
+var pipelineFile string
 
 // pipelineRunCmd
 var pipelineRunCmd = &cobra.Command{
@@ -13,48 +18,54 @@ var pipelineRunCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
-		// if strings.TrimSpace(pipelineFile) == "-" {
-		// 	inputFifo := "/tmp/mytool_in"
-		// 	outputFifo := "/tmp/mytool_out"
-
-		// 	_ = os.Remove(inputFifo)
-		// 	_ = os.Remove(outputFifo)
-		// 	err := syscall.Mkfifo(inputFifo, 0600)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	err = syscall.Mkfifo(outputFifo, 0600)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-
-		// 	// spawn another instance of this tool in background
-		// 	self, _ := os.Executable()
-		// 	cmd := exec.Command(self, "pipeline", "run", "--pipeline-file", inputFifo)
-
-		// 	// DETACH: new session, ignore signals from parent
-		// 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		// 		Setsid: true,
-		// 	}
-
-		// 	if err := cmd.Start(); err != nil {
-		// 		return err
-		// 	}
-
-		// 	// print the variable for the shell
-		// 	fmt.Printf("export MY_STDIN=%s\n", inputFifo)
-		// 	fmt.Printf("export MY_STDOUT=%s\n", outputFifo)
-		// 	return nil
-		// }
-
 		pipe := pipeline.NewPipeline(pipelineFile)
-		err := pipe.Run(ctx)
-		return err
+		outputChan := make(chan *pipeline.PipelineResult)
+
+		var outFormat params.OutFormat
+
+		switch {
+		case detailed:
+			outFormat = params.OutFormatDetailed
+		case jsonOutput:
+			outFormat = params.OutFormatJson
+		default:
+			outFormat = params.OutFormatString
+		}
+
+		go func() {
+			pipe.Run(ctx, outputChan)
+		}()
+		var jr *params.JsonRpcResult
+		for {
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("context deadline exceeded")
+			case out, ok := <-outputChan:
+				if !ok {
+					// channel closed
+					return nil
+				}
+				jr = params.NewJsonRpcResult(out.GetId(), nil, out.GetOutput())
+				if out.IsError() {
+					// error received
+					jr = params.NewJsonRpcResult(out.GetId(), out.GetError(), nil)
+				}
+				data, err := jr.JsonMarshall(outFormat)
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(data))
+			}
+		}
 	},
 }
 
 func init() {
 	pipelineCmd.AddCommand(pipelineRunCmd)
-	pipelineRunCmd.Flags().StringVarP(&pipelineFile, "pipeline-file", "f", "", "pipeline file to run")
+	pipelineRunCmd.Flags().StringVar(&pipelineFile, "pipeline-file", "", "specify the pipeline that is to be run.")
+	pipelineRunCmd.RegisterFlagCompletionFunc("pipeline-file", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"*.json"}, cobra.ShellCompDirectiveFilterFileExt
+	})
+	AddDetailedFlag(pipelineRunCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
 }

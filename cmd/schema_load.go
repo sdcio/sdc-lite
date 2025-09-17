@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -27,8 +30,8 @@ var SchemaLoadCmd = &cobra.Command{
 		rawParam.SetFile(schemaDefinitionFile)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
-		if pipelineFile != "" {
-			return AppendToPipelineFile(pipelineFile, rawParam)
+		if rpcOutput {
+			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
 
 		opts := config.ConfigOpts{
@@ -53,7 +56,7 @@ func init() {
 	schemaCmd.AddCommand(SchemaLoadCmd)
 	SchemaLoadCmd.PersistentFlags().StringVarP(&schemaDefinitionFile, "schema-def", "f", "", "The krm that defined the schema")
 	SchemaLoadCmd.PersistentFlags().BoolVarP(&schemaPathCleanup, "cleanup", "c", true, "Cleanup the Schemas directory after loading the schema")
-	AddPipelineCommandOutputFlags(SchemaLoadCmd)
+	AddRpcOutputFlag(SchemaLoadCmd)
 	EnableFlagAndDisableFileCompletion(SchemaLoadCmd)
 	err := SchemaLoadCmd.MarkPersistentFlagRequired("schema-def")
 	if err != nil {

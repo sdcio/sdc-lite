@@ -21,7 +21,9 @@ import (
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/diff"
 	"github.com/sdcio/sdc-lite/pkg/schemaclient"
@@ -33,12 +35,13 @@ import (
 )
 
 type ConfigDiff struct {
-	config          *config.Config
-	tree            *tree.RootEntry
-	schema          *sdcpb.Schema
-	schemaStore     store.Store
-	schemaStoreIsRO bool
+	config      *config.Config
+	tree        *tree.RootEntry
+	schema      *sdcpb.Schema
+	schemaStore store.Store
 }
+
+var _ params.Executor = (*ConfigDiff)(nil)
 
 func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
 	llevel, err := log.ParseLevel(c.LogLevel())
@@ -151,11 +154,11 @@ func (c *ConfigDiff) closeSchemaStore() error {
 }
 
 func (c *ConfigDiff) loadSchemaStore(ctx context.Context, readOnly bool, vendor string, version string) (store.Store, error) {
-	if c.schemaStore != nil && c.schemaStoreIsRO == readOnly {
+	if c.schemaStore != nil && c.schemaStore.IsReadOnly() == readOnly {
 		return c.schemaStore, nil
 	}
 	if c.schemaStore != nil {
-		err := c.schemaStore.Close()
+		err := c.closeSchemaStore()
 		if err != nil {
 			// TODO log error
 		}
@@ -238,11 +241,11 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, slc *params.SchemaLoadC
 		Version: schemaDef.Spec.Version,
 	}
 
-	schemaStore, err := c.loadSchemaStore(ctx, false, schemaDef.Spec.Provider, schemaDef.Spec.Version)
+	// open schema store in readonly first
+	schemaStore, err := c.loadSchemaStore(ctx, true, schemaDef.Spec.Provider, schemaDef.Spec.Version)
 	if err != nil {
 		return nil, err
 	}
-	defer c.closeSchemaStore()
 
 	// check if the schema already exists
 	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
@@ -253,6 +256,14 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, slc *params.SchemaLoadC
 		c.SetSchema(sdcpbSchema)
 		return sdcpbSchema, nil
 	}
+
+	// if schema does not exist, open in read/write and continue
+	schemaStore, err = c.loadSchemaStore(ctx, false, schemaDef.Spec.Provider, schemaDef.Spec.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	defer schemaStore.Close()
 
 	schemaLoader, err := loader.NewLoader(
 		c.config.DownloadPath(),
@@ -384,64 +395,41 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 	return nil
 }
 
-func (c *ConfigDiff) TreeGetString(ctx context.Context, config *params.ConfigShowConfig) (string, error) {
+func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConfig) (interfaces.Output, error) {
 	var err error
 	err = c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	entry, err := c.tree.NavigateSdcpbPath(ctx, config.GetPath().GetElem(), true)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := ""
 	switch config.GetOutputFormat() {
 	case types.ConfigFormatXml:
-		x, err := entry.ToXML(config.GetAll(), true, true, false)
-		if err != nil {
-			return "", err
-		}
-		x.Indent(2)
-		s, err := x.WriteToString()
-		if err != nil {
-			return "", err
-		}
-		result = s
-		return result, nil
-	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
-		var j any
-		if config.GetOutputFormat() == types.ConfigFormatJson {
-			j, err = entry.ToJson(config.GetAll())
-		} else {
-			j, err = entry.ToJsonIETF(config.GetAll())
-		}
-		if err != nil {
-			return "", err
-		}
-
-		byteDoc, err := json.MarshalIndent(j, "", " ")
-		if err != nil {
-			return "", err
-		}
-		result = string(byteDoc)
-		return result, nil
+		return output.NewConfigShowXmlOutput(entry), nil
+	case types.ConfigFormatJson:
+		return output.NewConfigShowJsonOutput(entry), nil
+	case types.ConfigFormatJsonIetf:
+		return output.NewConfigShowJsonIetfOutput(entry), nil
 	case types.ConfigFormatYaml:
-		var j any
-		j, err = entry.ToJson(config.GetAll())
-		if err != nil {
-			return "", err
-		}
-		byteDoc, err := yaml.Marshal(j)
-		if err != nil {
-			return "", err
-		}
-		return string(byteDoc), nil
+		return output.NewConfigShowYamlOutput(entry), nil
+	case types.ConfigFormatXPath:
+		// TODO
+		// xpv := visitors.NewXPathVisitor()
+		// err := entry.Walk(ctx, xpv)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// return xpv.GetResult(), nil
+		return &output.NullOutput{}, nil
 	case types.ConfigFormatSdc:
-		return "", fmt.Errorf("output in %s format not supported", config.GetOutputFormat())
+		fallthrough
+	default:
+		return nil, fmt.Errorf("output in %s format not supported", config.GetOutputFormat())
 	}
-	return "", nil
 }
 
 func (c *ConfigDiff) GetJson(onlyNewOrUpdated bool) (any, error) {

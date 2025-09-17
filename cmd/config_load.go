@@ -12,6 +12,7 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 	"github.com/spf13/cobra"
@@ -84,8 +85,8 @@ var configLoadCmd = &cobra.Command{
 		}
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
-		if pipelineFile != "" {
-			return AppendToPipelineFile(pipelineFile, rawParam)
+		if rpcOutput {
+			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
 
 		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)
@@ -108,7 +109,7 @@ func init() {
 	configLoadCmd.Flags().StringVar(&configurationFileFormatStr, "file-format", "", fmt.Sprintf("The format of the config to be loaded [ %s ]", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configLoadCmd.Flags().Int32Var(&priority, "priority", 500, "The defined priority of the configuration")
 	configLoadCmd.Flags().StringVar(&intentName, "intent-name", "", "The name of the configuration intent")
-	AddPipelineCommandOutputFlags(configLoadCmd)
+	AddRpcOutputFlag(configLoadCmd)
 	EnableFlagAndDisableFileCompletion(configLoadCmd)
 
 	params.GetCommandRegistry().Register(types.CommandTypeConfigLoad, func() params.RpcRawParams { return params.NewConfigLoadRaw() })

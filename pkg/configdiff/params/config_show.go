@@ -2,7 +2,6 @@ package params
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	"github.com/sdcio/sdc-lite/pkg/types"
@@ -51,12 +50,5 @@ func (c *ConfigShowConfig) String() string {
 }
 
 func (c *ConfigShowConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
-
-	// TODO: dirty hack for now ... this must return a proper interface.Output
-	out, err := cde.TreeGetString(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(out)
-	return nil, nil
+	return cde.TreeShow(ctx, c)
 }

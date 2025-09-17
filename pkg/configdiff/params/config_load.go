@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/sdcio/sdc-lite/pkg/types"
 )
 
@@ -24,5 +25,12 @@ func (c *ConfigLoad) String() string {
 }
 
 func (c *ConfigLoad) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
-	return nil, cde.TreeLoadData(ctx, c)
+	err := cde.TreeLoadData(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	result := output.NewErrorOutput(err)
+
+	return result, nil
 }

@@ -23,7 +23,7 @@ func NewConfigValidateOutput(result types.ValidationResults, stats *types.Valida
 	}
 }
 
-func (cvo *ConfigValidateOutput) ToString() string {
+func (cvo *ConfigValidateOutput) ToString() (string, error) {
 	sb := &strings.Builder{}
 
 	if cvo.result.HasErrors() {
@@ -36,13 +36,17 @@ func (cvo *ConfigValidateOutput) ToString() string {
 		fmt.Fprintf(sb, "Warnings:\n%s", strings.Join(cvo.result.WarningsStr(), "\n"))
 	}
 
-	return sb.String()
+	return sb.String(), nil
 }
 
-func (cvo *ConfigValidateOutput) ToStringDetails() string {
+func (cvo *ConfigValidateOutput) ToStringDetails() (string, error) {
 	sb := &strings.Builder{}
 
-	fmt.Fprint(sb, cvo.ToString())
+	toString, err := cvo.ToString()
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprint(sb, toString)
 
 	fmt.Fprintln(sb, "Validations performed:")
 	// sort the map, by getting the keys first
@@ -61,10 +65,21 @@ func (cvo *ConfigValidateOutput) ToStringDetails() string {
 	for _, typ := range keys {
 		fmt.Fprintf(sb, "%s%s: %d\n", indent, typ, cvo.stats.GetCounter()[typ])
 	}
-	return sb.String()
+	return sb.String(), nil
 }
 
 func (cvo *ConfigValidateOutput) WriteToJson(w io.Writer) error {
+	jenc := json.NewEncoder(w)
+
+	jVal, err := cvo.ToStruct()
+	if err != nil {
+		return err
+	}
+	return jenc.Encode(jVal)
+}
+
+func (cvo *ConfigValidateOutput) ToStruct() (any, error) {
+
 	result := struct {
 		Errors   []string
 		Warnings []string
@@ -75,9 +90,7 @@ func (cvo *ConfigValidateOutput) WriteToJson(w io.Writer) error {
 		Stats:    cvo.stats,
 	}
 
-	jenc := json.NewEncoder(w)
-
-	return jenc.Encode(result)
+	return result, nil
 }
 
 var _ interfaces.Output = (*ConfigValidateOutput)(nil)

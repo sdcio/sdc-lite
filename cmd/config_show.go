@@ -7,6 +7,7 @@ import (
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -24,17 +25,17 @@ var configShowCmd = &cobra.Command{
 
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		scr := params.NewConfigShowConfigRaw().SetAll(outputAll).SetOutputFormat(outFormatStr).SetPath(path)
+		rawParam := params.NewConfigShowConfigRaw().SetAll(outputAll).SetOutputFormat(outFormatStr).SetPath(path)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
-		if pipelineFile != "" {
-			return AppendToPipelineFile(pipelineFile, scr)
+		if rpcOutput {
+			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
 
 		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
-		out, err := RunFromRaw(ctx, opts, optsP, false, scr)
+		out, err := RunFromRaw(ctx, opts, optsP, false, rawParam)
 		if err != nil {
 			return err
 		}
@@ -53,7 +54,7 @@ func init() {
 	configShowCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configShowCmd.Flags().BoolVarP(&outputAll, "all", "a", false, "return the whole config, not just new and updated values")
 	AddPathPersistentFlag(configShowCmd)
-	AddPipelineCommandOutputFlags(configShowCmd)
+	AddRpcOutputFlag(configShowCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
 
 	params.GetCommandRegistry().Register(types.CommandTypeConfigShow, func() params.RpcRawParams { return params.NewConfigShowConfigRaw() })

@@ -11,7 +11,7 @@ import (
 
 var optsP = config.ConfigPersistentOpts{}
 var jsonOutput bool
-var pipelineFile string
+var rpcOutput bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -27,12 +27,14 @@ func Execute() {
 	}
 }
 
-func AddPipelineCommandOutputFlags(c *cobra.Command) error {
-	c.Flags().StringVar(&pipelineFile, "pipeline-file", "", "define the pipeline command file that the actual command is added to")
-	err := c.RegisterFlagCompletionFunc("config", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"*.json"}, cobra.ShellCompDirectiveFilterFileExt
-	})
-	return err
+func AddDetailedFlag(c *cobra.Command) error {
+	c.Flags().BoolVarP(&detailed, "detailed", "d", false, "show detailed output")
+	return nil
+}
+
+func AddRpcOutputFlag(c *cobra.Command) error {
+	c.Flags().BoolVar(&rpcOutput, "rpc", false, "return the jsonrpc content for the command")
+	return nil
 }
 
 func AddTargetPersistentFlag(c *cobra.Command) error {

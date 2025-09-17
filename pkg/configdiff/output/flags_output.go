@@ -28,7 +28,7 @@ func NewFlagsOutput(f *dsTypes.UpdateInsertFlags) *FlagsOutput {
 	}
 }
 
-func (f *FlagsOutput) ToString() string {
+func (f *FlagsOutput) ToString() (string, error) {
 	sb := &strings.Builder{}
 	fmt.Fprint(sb, "[")
 	if f.New {
@@ -44,10 +44,10 @@ func (f *FlagsOutput) ToString() string {
 		fmt.Fprint(sb, "ExplicitDelete ")
 	}
 	fmt.Fprint(sb, "]")
-	return sb.String()
+	return sb.String(), nil
 }
 
-func (f *FlagsOutput) ToStringDetails() string {
+func (f *FlagsOutput) ToStringDetails() (string, error) {
 	return f.ToString()
 }
 
@@ -55,4 +55,8 @@ func (f *FlagsOutput) WriteToJson(w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(f)
+}
+
+func (f *FlagsOutput) ToStruct() (any, error) {
+	return f, nil
 }

@@ -30,6 +30,6 @@ func (s *SchemaLoadConfig) String() string {
 }
 
 func (s *SchemaLoadConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
-	schema, err := cde.SchemaDownload(ctx, s)
-	return output.NewSchemaOutput(schema), err
+	_, err := cde.SchemaDownload(ctx, s)
+	return output.NewErrorOutput(err), err
 }
