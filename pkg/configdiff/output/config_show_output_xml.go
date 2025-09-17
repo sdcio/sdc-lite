@@ -50,6 +50,16 @@ func (o *ConfigShowXmlOutput) ToString() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	wrapInConfig(xmlDoc)
+
+	return xmlDoc.WriteToString()
+}
+func (o *ConfigShowXmlOutput) ToStringDetails() (string, error) {
+	return o.ToString()
+}
+
+func wrapInConfig(xmlDoc *etree.Document) {
 	// make sure we have a root element
 	// Create a new root <config>
 	root := etree.NewElement("config")
@@ -61,23 +71,21 @@ func (o *ConfigShowXmlOutput) ToString() (string, error) {
 
 	// Reset document root
 	xmlDoc.SetRoot(root)
-
+	// set indent
 	xmlDoc.Indent(2)
-	return xmlDoc.WriteToString()
 }
-func (o *ConfigShowXmlOutput) ToStringDetails() (string, error) {
-	return o.ToString()
-}
+
 func (o *ConfigShowXmlOutput) ToStruct() (any, error) {
-	etre, err := o.root.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
+	xmlDoc, err := o.root.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
 	if err != nil {
 		return nil, err
 	}
-	xmlString, err := etre.WriteToString()
+	wrapInConfig(xmlDoc)
+	xmlString, err := xmlDoc.WriteToString()
 	if err != nil {
 		return nil, err
 	}
-	return struct{ xml string }{xml: xmlString}, nil
+	return struct{ Xml string }{Xml: xmlString}, nil
 }
 func (o *ConfigShowXmlOutput) WriteToJson(w io.Writer) error {
 	jenc := json.NewEncoder(w)
