@@ -21,15 +21,22 @@ func WriteOutput(o interfaces.Output) (err error) {
 	case jsonOutput:
 		err = o.WriteToJson(os.Stdout)
 	case detailed:
-		_, err = fmt.Print(o.ToStringDetails())
+		output, err := o.ToStringDetails()
+		if err != nil {
+			return err
+		}
+		fmt.Print(output)
 	default:
-		_, err = fmt.Print(o.ToString())
+		output, err := o.ToString()
+		if err != nil {
+			return err
+		}
+		fmt.Print(output)
 	}
 	return err
 }
 
 func RunFromRaw(ctx context.Context, opts config.ConfigOpts, optsP config.ConfigPersistentOpts, persist bool, rpcParams ...rpc.RpcRawParams) (interfaces.Output, error) {
-
 	c, err := config.NewConfigPersistent(opts, optsP)
 	if err != nil {
 		return nil, err
