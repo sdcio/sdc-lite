@@ -1,10 +1,9 @@
-package params
+package rpc
 
 import (
-	"context"
 	"encoding/json"
 
-	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
 	"github.com/sdcio/sdc-lite/pkg/types"
 )
 
@@ -24,17 +23,9 @@ func NewJsonRpcMessage[T RpcRawParams](method types.CommandType, id int, params 
 	}
 }
 
-func (j *JsonRpcMessage[T]) Execute(ctx context.Context, cde Executor) (interfaces.Output, error) {
-	cmd, err := j.Params.UnRaw()
-	if err != nil {
-		return nil, err
-	}
-	return cmd.Run(ctx, cde)
-}
-
 type RpcRawParams interface {
 	GetMethod() types.CommandType
-	UnRaw() (RunCommand, error)
+	UnRaw() (executor.RunCommand, error)
 }
 
 type JsonRpcEnvelope struct {

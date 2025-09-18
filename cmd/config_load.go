@@ -12,6 +12,7 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
@@ -38,8 +39,8 @@ var configLoadCmd = &cobra.Command{
 
 		opts := config.ConfigOpts{}
 
-		rawParam := params.NewConfigLoadRaw()
-		rawParam.SetFormat(configurationFileFormatStr).SetFile(configurationFile).SetFlags(&params.UpdateInsertFlagsRaw{})
+		rawParam := rawparams.NewConfigLoadRaw()
+		rawParam.SetFormat(configurationFileFormatStr).SetFile(configurationFile).SetFlags(&rawparams.UpdateInsertFlagsRaw{})
 
 		configFormat, err := types.ParseConfigFormat(configurationFileFormatStr)
 		if err != nil {
@@ -111,8 +112,6 @@ func init() {
 	configLoadCmd.Flags().StringVar(&intentName, "intent-name", "", "The name of the configuration intent")
 	AddRpcOutputFlag(configLoadCmd)
 	EnableFlagAndDisableFileCompletion(configLoadCmd)
-
-	params.GetCommandRegistry().Register(types.CommandTypeConfigLoad, func() params.RpcRawParams { return params.NewConfigLoadRaw() })
 }
 
 func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {
@@ -131,7 +130,7 @@ func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {
 	return sdcC, nil
 }
 
-func ConvertSDCConfigToInternalIntent(ctx context.Context, cd *configdiff.ConfigDiff, sdcConfig *v1alpha1.Config) (*params.ConfigLoadRaw, error) {
+func ConvertSDCConfigToInternalIntent(ctx context.Context, cd *configdiff.ConfigDiff, sdcConfig *v1alpha1.Config) (*rawparams.ConfigLoadRaw, error) {
 	// create a new config diff instance that we can use to aggregate the multiple path / values from the cr spec
 	cdNew, err := cd.CopyEmptyConfigDiff(ctx)
 	if err != nil {
@@ -163,8 +162,8 @@ func ConvertSDCConfigToInternalIntent(ctx context.Context, cd *configdiff.Config
 		return nil, err
 	}
 
-	intentRaw := params.NewConfigLoadRaw()
-	intentRaw.SetName(sdcConfig.Name).SetPrio(int32(sdcConfig.Spec.Priority)).SetFlags(&params.UpdateInsertFlagsRaw{})
+	intentRaw := rawparams.NewConfigLoadRaw()
+	intentRaw.SetName(sdcConfig.Name).SetPrio(int32(sdcConfig.Spec.Priority)).SetFlags(&rawparams.UpdateInsertFlagsRaw{})
 	intentRaw.SetFormat(types.ConfigFormatJson.String()).SetData(jsonConfByte)
 
 	return intentRaw, nil

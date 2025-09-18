@@ -5,20 +5,19 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sdcio/data-server/pkg/tree"
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 )
 
 type ConfigShowJsonIetfOutput struct {
-	root             tree.Entry
+	tree             TreeToJsonIetf
 	onlyNewOrUpdated bool
 }
 
 var _ interfaces.Output = (*ConfigShowJsonIetfOutput)(nil)
 
-func NewConfigShowJsonIetfOutput(root tree.Entry) *ConfigShowJsonIetfOutput {
+func NewConfigShowJsonIetfOutput(root TreeToJsonIetf) *ConfigShowJsonIetfOutput {
 	return &ConfigShowJsonIetfOutput{
-		root: root,
+		tree: root,
 	}
 }
 
@@ -38,7 +37,7 @@ func (o *ConfigShowJsonIetfOutput) ToStringDetails() (string, error) {
 	return o.ToString()
 }
 func (o *ConfigShowJsonIetfOutput) ToStruct() (any, error) {
-	return o.root.ToJsonIETF(o.onlyNewOrUpdated)
+	return o.tree.ToJsonIETF(o.onlyNewOrUpdated)
 }
 func (o *ConfigShowJsonIetfOutput) WriteToJson(w io.Writer) error {
 	jenc := json.NewEncoder(w)
@@ -47,4 +46,8 @@ func (o *ConfigShowJsonIetfOutput) WriteToJson(w io.Writer) error {
 		return err
 	}
 	return jenc.Encode(jVal)
+}
+
+type TreeToJsonIetf interface {
+	ToJsonIETF(onlyNewOrUpdated bool) (any, error)
 }

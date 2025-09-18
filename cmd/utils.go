@@ -10,7 +10,7 @@ import (
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 )
 
 func WriteOutput(o interfaces.Output) (err error) {
@@ -28,7 +28,7 @@ func WriteOutput(o interfaces.Output) (err error) {
 	return err
 }
 
-func RunFromRaw(ctx context.Context, opts config.ConfigOpts, optsP config.ConfigPersistentOpts, persist bool, rpcParams ...params.RpcRawParams) (interfaces.Output, error) {
+func RunFromRaw(ctx context.Context, opts config.ConfigOpts, optsP config.ConfigPersistentOpts, persist bool, rpcParams ...rpc.RpcRawParams) (interfaces.Output, error) {
 
 	c, err := config.NewConfigPersistent(opts, optsP)
 	if err != nil {

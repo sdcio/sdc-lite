@@ -4,9 +4,8 @@ import (
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
-	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +19,7 @@ var configBlameCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
-		rawParam := params.NewConfigBlameParamsRaw()
+		rawParam := rawparams.NewConfigBlameParamsRaw()
 		rawParam.SetPath(path).SetIncludeDefaults(includeDefaults)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
@@ -47,5 +46,4 @@ func init() {
 	AddPathPersistentFlag(configBlameCmd)
 	AddRpcOutputFlag(configBlameCmd)
 	EnableFlagAndDisableFileCompletion(configBlameCmd)
-	params.GetCommandRegistry().Register(types.CommandTypeConfigBlame, func() params.RpcRawParams { return params.NewConfigBlameParamsRaw() })
 }

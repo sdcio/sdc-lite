@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/spf13/cobra"
 )
@@ -21,21 +21,21 @@ var pipelineRunCmd = &cobra.Command{
 		pipe := pipeline.NewPipeline(pipelineFile)
 		outputChan := make(chan *pipeline.PipelineResult)
 
-		var outFormat params.OutFormat
+		var outFormat rpc.OutFormat
 
 		switch {
 		case detailed:
-			outFormat = params.OutFormatDetailed
+			outFormat = rpc.OutFormatDetailed
 		case jsonOutput:
-			outFormat = params.OutFormatJson
+			outFormat = rpc.OutFormatJson
 		default:
-			outFormat = params.OutFormatString
+			outFormat = rpc.OutFormatString
 		}
 
 		go func() {
 			pipe.Run(ctx, outputChan)
 		}()
-		var jr *params.JsonRpcResult
+		var jr *rpc.JsonRpcResult
 		for {
 			select {
 			case <-ctx.Done():
@@ -45,10 +45,10 @@ var pipelineRunCmd = &cobra.Command{
 					// channel closed
 					return nil
 				}
-				jr = params.NewJsonRpcResult(out.GetId(), nil, out.GetOutput())
+				jr = rpc.NewJsonRpcResult(out.GetId(), nil, out.GetOutput())
 				if out.IsError() {
 					// error received
-					jr = params.NewJsonRpcResult(out.GetId(), out.GetError(), nil)
+					jr = rpc.NewJsonRpcResult(out.GetId(), out.GetError(), nil)
 				}
 				data, err := jr.JsonMarshall(outFormat)
 				if err != nil {

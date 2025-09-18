@@ -1,4 +1,4 @@
-package params
+package rawparams
 
 import (
 	dsTypes "github.com/sdcio/data-server/pkg/tree/types"

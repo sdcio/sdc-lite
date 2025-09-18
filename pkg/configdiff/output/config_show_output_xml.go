@@ -5,12 +5,11 @@ import (
 	"io"
 
 	"github.com/beevik/etree"
-	"github.com/sdcio/data-server/pkg/tree"
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 )
 
 type ConfigShowXmlOutput struct {
-	root                   tree.Entry
+	tree                   TreeToXML
 	onlyNewOrUpdated       bool
 	honorNamespace         bool
 	operationWithNamespace bool
@@ -19,9 +18,9 @@ type ConfigShowXmlOutput struct {
 
 var _ interfaces.Output = (*ConfigShowXmlOutput)(nil)
 
-func NewConfigShowXmlOutput(root tree.Entry) *ConfigShowXmlOutput {
+func NewConfigShowXmlOutput(root TreeToXML) *ConfigShowXmlOutput {
 	return &ConfigShowXmlOutput{
-		root:                   root,
+		tree:                   root,
 		onlyNewOrUpdated:       false,
 		honorNamespace:         true,
 		operationWithNamespace: true,
@@ -46,7 +45,7 @@ func (c *ConfigShowXmlOutput) SetUseOperationRemove(v bool) {
 }
 
 func (o *ConfigShowXmlOutput) ToString() (string, error) {
-	xmlDoc, err := o.root.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
+	xmlDoc, err := o.tree.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +75,7 @@ func wrapInConfig(xmlDoc *etree.Document) {
 }
 
 func (o *ConfigShowXmlOutput) ToStruct() (any, error) {
-	xmlDoc, err := o.root.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
+	xmlDoc, err := o.tree.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
 	if err != nil {
 		return nil, err
 	}
@@ -94,4 +93,8 @@ func (o *ConfigShowXmlOutput) WriteToJson(w io.Writer) error {
 		return err
 	}
 	return jenc.Encode(jVal)
+}
+
+type TreeToXML interface {
+	ToXML(onlyNewOrUpdated bool, honorNamespace bool, operationWithNamespace bool, useOperationRemove bool) (*etree.Document, error)
 }

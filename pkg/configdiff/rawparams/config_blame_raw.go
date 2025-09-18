@@ -1,6 +1,10 @@
-package params
+package rawparams
 
 import (
+	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
@@ -28,12 +32,16 @@ func (c *ConfigBlameParamsRaw) SetIncludeDefaults(includeDefaults bool) *ConfigB
 	return c
 }
 
-func (c *ConfigBlameParamsRaw) UnRaw() (RunCommand, error) {
+func (c *ConfigBlameParamsRaw) UnRaw() (executor.RunCommand, error) {
 	p, err := sdcpb.ParsePath(c.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	result := NewConfigBlameParams().SetIncludeDefaults(c.IncludeDefaults).SetPath(p)
+	result := params.NewConfigBlameParams().SetIncludeDefaults(c.IncludeDefaults).SetPath(p)
 	return result, nil
+}
+
+func init() {
+	command_registry.GetCommandRegistry().Register(types.CommandTypeConfigBlame, func() rpc.RpcRawParams { return NewConfigBlameParamsRaw() })
 }

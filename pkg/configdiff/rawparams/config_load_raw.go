@@ -1,8 +1,12 @@
-package params
+package rawparams
 
 import (
 	"fmt"
 
+	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
@@ -90,7 +94,7 @@ func (i *ConfigLoadRaw) GetBasePath() string {
 	return i.BasePath
 }
 
-func (i *ConfigLoadRaw) UnRaw() (RunCommand, error) {
+func (i *ConfigLoadRaw) UnRaw() (executor.RunCommand, error) {
 	cf, err := types.ParseConfigFormat(i.Format)
 	if err != nil {
 		return nil, err
@@ -113,5 +117,9 @@ func (i *ConfigLoadRaw) UnRaw() (RunCommand, error) {
 
 	intent := types.NewIntent(i.Name, i.Prio, i.Flags.UnRaw()).SetData(cf, data)
 
-	return NewConfigLoad(intent), nil
+	return params.NewConfigLoad(intent), nil
+}
+
+func init() {
+	command_registry.GetCommandRegistry().Register(types.CommandTypeConfigLoad, func() rpc.RpcRawParams { return NewConfigLoadRaw() })
 }

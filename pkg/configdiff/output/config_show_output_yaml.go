@@ -4,21 +4,20 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sdcio/data-server/pkg/tree"
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 )
 
 type ConfigShowYamlOutput struct {
-	root             tree.Entry
+	tree             TreeToJson
 	onlyNewOrUpdated bool
 }
 
 var _ interfaces.Output = (*ConfigShowYamlOutput)(nil)
 
-func NewConfigShowYamlOutput(root tree.Entry) *ConfigShowYamlOutput {
+func NewConfigShowYamlOutput(root TreeToJson) *ConfigShowYamlOutput {
 	return &ConfigShowYamlOutput{
-		root: root,
+		tree: root,
 	}
 }
 
@@ -38,7 +37,7 @@ func (o *ConfigShowYamlOutput) ToStringDetails() (string, error) {
 	return o.ToString()
 }
 func (o *ConfigShowYamlOutput) ToStruct() (any, error) {
-	return o.root.ToJson(o.onlyNewOrUpdated)
+	return o.tree.ToJson(o.onlyNewOrUpdated)
 }
 func (o *ConfigShowYamlOutput) WriteToJson(w io.Writer) error {
 	yEnc := yaml.NewEncoder(w)

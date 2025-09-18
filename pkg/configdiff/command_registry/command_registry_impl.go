@@ -1,4 +1,4 @@
-package params
+package command_registry
 
 import (
 	"fmt"

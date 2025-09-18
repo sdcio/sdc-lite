@@ -1,6 +1,11 @@
-package params
+package rawparams
 
 import (
+	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/enum"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
@@ -59,11 +64,11 @@ func (c *DiffConfigRaw) GetMethod() types.CommandType {
 	return types.CommandTypeConfigDiff
 }
 
-func (d *DiffConfigRaw) UnRaw() (RunCommand, error) {
+func (d *DiffConfigRaw) UnRaw() (executor.RunCommand, error) {
 	var err error
-	var dt DiffType = DiffTypePatch
+	var dt enum.DiffType = enum.DiffTypePatch
 	if d.DiffType != "" {
-		dt, err = ParseDiffType(d.DiffType)
+		dt, err = enum.ParseDiffType(d.DiffType)
 		if err != nil {
 			return nil, err
 		}
@@ -85,9 +90,9 @@ func (d *DiffConfigRaw) UnRaw() (RunCommand, error) {
 		}
 	}
 
-	dc := NewDiffConfig(dt).SetColor(!d.NoColor).SetConfig(f).SetPath(path).SetShowHeader(!d.NoShowHeader)
+	dc := params.NewDiffConfig(dt).SetColor(!d.NoColor).SetConfig(f).SetPath(path).SetShowHeader(!d.NoShowHeader)
 
-	if dc.contextLines != 0 {
+	if d.ContextLines != 0 {
 		dc.SetContextLines(d.ContextLines)
 	}
 	if d.Width != 0 {
@@ -95,4 +100,8 @@ func (d *DiffConfigRaw) UnRaw() (RunCommand, error) {
 	}
 
 	return dc, nil
+}
+
+func init() {
+	command_registry.GetCommandRegistry().Register(types.CommandTypeConfigDiff, func() rpc.RpcRawParams { return NewDiffConfigRaw() })
 }

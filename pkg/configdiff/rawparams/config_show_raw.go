@@ -1,6 +1,10 @@
-package params
+package rawparams
 
 import (
+	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
@@ -35,7 +39,7 @@ func (c *ConfigShowConfigRaw) SetOutputFormat(f string) *ConfigShowConfigRaw {
 	return c
 }
 
-func (c *ConfigShowConfigRaw) UnRaw() (RunCommand, error) {
+func (c *ConfigShowConfigRaw) UnRaw() (executor.RunCommand, error) {
 	p, err := sdcpb.ParsePath(c.Path)
 	if err != nil {
 		return nil, err
@@ -46,7 +50,11 @@ func (c *ConfigShowConfigRaw) UnRaw() (RunCommand, error) {
 		return nil, err
 	}
 
-	result := NewConfigShowConfig().SetPath(p).SetAll(c.All).SetOutputFormat(f)
+	result := params.NewConfigShowConfig().SetPath(p).SetAll(c.All).SetOutputFormat(f)
 
 	return result, nil
+}
+
+func init() {
+	command_registry.GetCommandRegistry().Register(types.CommandTypeConfigShow, func() rpc.RpcRawParams { return NewConfigShowConfigRaw() })
 }

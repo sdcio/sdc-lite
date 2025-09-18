@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ var configShowCmd = &cobra.Command{
 
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		rawParam := params.NewConfigShowConfigRaw().SetAll(outputAll).SetOutputFormat(outFormatStr).SetPath(path)
+		rawParam := rawparams.NewConfigShowConfigRaw().SetAll(outputAll).SetOutputFormat(outFormatStr).SetPath(path)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
@@ -56,6 +56,4 @@ func init() {
 	AddPathPersistentFlag(configShowCmd)
 	AddRpcOutputFlag(configShowCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
-
-	params.GetCommandRegistry().Register(types.CommandTypeConfigShow, func() params.RpcRawParams { return params.NewConfigShowConfigRaw() })
 }

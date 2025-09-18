@@ -4,9 +4,8 @@ import (
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
-	"github.com/sdcio/sdc-lite/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +25,7 @@ var SchemaLoadCmd = &cobra.Command{
 
 		ctx := cmd.Context()
 
-		rawParam := params.NewSchemaLoadConfigRaw()
+		rawParam := rawparams.NewSchemaLoadConfigRaw()
 		rawParam.SetFile(schemaDefinitionFile)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
@@ -70,6 +69,4 @@ func init() {
 	if err != nil {
 		log.Error(err)
 	}
-
-	params.GetCommandRegistry().Register(types.CommandTypeSchemaLoad, func() params.RpcRawParams { return params.NewSchemaLoadConfigRaw() })
 }

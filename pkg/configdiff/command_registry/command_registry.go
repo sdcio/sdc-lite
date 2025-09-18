@@ -1,9 +1,7 @@
-package params
+package command_registry
 
 import (
-	"context"
-
-	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 )
 
@@ -16,14 +14,9 @@ func GetCommandRegistry() CommandRegistry {
 	return registry
 }
 
-type CommandFactory func() RpcRawParams
+type CommandFactory func() rpc.RpcRawParams
 
 type CommandRegistry interface {
 	Register(ct types.CommandType, cf CommandFactory)
 	GetCommandFactory(ct types.CommandType) (CommandFactory, error)
-}
-
-type RunCommand interface {
-	Run(ctx context.Context, cde Executor) (interfaces.Output, error)
-	String() string
 }

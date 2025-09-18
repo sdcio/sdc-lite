@@ -21,9 +21,7 @@ import (
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
-	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/diff"
 	"github.com/sdcio/sdc-lite/pkg/schemaclient"
@@ -395,41 +393,14 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 	return nil
 }
 
-func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConfig) (interfaces.Output, error) {
+func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConfig) (params.ConfigShowInterface, error) {
 	var err error
 	err = c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	entry, err := c.tree.NavigateSdcpbPath(ctx, config.GetPath().GetElem(), true)
-	if err != nil {
-		return nil, err
-	}
-
-	switch config.GetOutputFormat() {
-	case types.ConfigFormatXml:
-		return output.NewConfigShowXmlOutput(entry), nil
-	case types.ConfigFormatJson:
-		return output.NewConfigShowJsonOutput(entry), nil
-	case types.ConfigFormatJsonIetf:
-		return output.NewConfigShowJsonIetfOutput(entry), nil
-	case types.ConfigFormatYaml:
-		return output.NewConfigShowYamlOutput(entry), nil
-	case types.ConfigFormatXPath:
-		// TODO
-		// xpv := visitors.NewXPathVisitor()
-		// err := entry.Walk(ctx, xpv)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// return xpv.GetResult(), nil
-		return &output.NullOutput{}, nil
-	case types.ConfigFormatSdc:
-		fallthrough
-	default:
-		return nil, fmt.Errorf("output in %s format not supported", config.GetOutputFormat())
-	}
+	return c.tree.NavigateSdcpbPath(ctx, config.GetPath().GetElem(), true)
 }
 
 func (c *ConfigDiff) GetJson(onlyNewOrUpdated bool) (any, error) {

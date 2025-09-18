@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/enum"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ var configDiffCmd = &cobra.Command{
 
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		rawParam := params.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
+		rawParam := rawparams.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
@@ -55,7 +56,7 @@ var configDiffCmd = &cobra.Command{
 
 func init() {
 	configCmd.AddCommand(configDiffCmd)
-	configDiffCmd.Flags().StringVar(&difftypeStr, "type", "side-by-side-patch", fmt.Sprintf("difftype, one of %s", strings.Join(params.DiffTypeList.StringSlice(), ", ")))
+	configDiffCmd.Flags().StringVar(&difftypeStr, "type", "side-by-side-patch", fmt.Sprintf("difftype, one of %s", strings.Join(enum.DiffTypeList.StringSlice(), ", ")))
 	configDiffCmd.Flags().IntVar(&contextLines, "context", 2, "number of context lines in patch based diffs")
 	configDiffCmd.Flags().BoolVar(&noColor, "no-color", false, "non colorized output")
 	configDiffCmd.Flags().StringVarP(&outFormatStr, "out-format", "o", "json", fmt.Sprintf("output formats one of %s", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
@@ -65,7 +66,7 @@ func init() {
 
 	// Register autocompletion for the diff type flag
 	err := configDiffCmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return params.DiffTypeList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
+		return enum.DiffTypeList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
 		logrus.Error(err)

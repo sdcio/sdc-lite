@@ -2,10 +2,10 @@ package params
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/enum"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 
@@ -13,7 +13,7 @@ import (
 )
 
 type DiffConfig struct {
-	diffType     DiffType
+	diffType     enum.DiffType
 	format       types.ConfigFormat
 	contextLines int
 	width        int
@@ -22,7 +22,7 @@ type DiffConfig struct {
 	path         *sdcpb.Path
 }
 
-func NewDiffConfig(dt DiffType) *DiffConfig {
+func NewDiffConfig(dt enum.DiffType) *DiffConfig {
 	return &DiffConfig{
 		diffType:     dt,
 		color:        true,
@@ -84,7 +84,7 @@ func (d *DiffConfig) GetColor() bool {
 	return d.color
 }
 
-func (d *DiffConfig) GetDiffType() DiffType {
+func (d *DiffConfig) GetDiffType() enum.DiffType {
 	return d.diffType
 }
 
@@ -97,43 +97,10 @@ func (d *DiffConfig) GetShowHeader() bool {
 }
 
 func (d *DiffConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
-	// TODO: fix this
 	diff, err := cde.GetDiff(ctx, d)
-	fmt.Println(diff)
-	return nil, err
+	return output.NewConfigDiffOutput(diff), err
 }
 
 func (d *DiffConfig) String() string {
 	return types.CommandTypeConfigDiff
-}
-
-type DiffType string
-
-const (
-	DiffTypeUndefined       DiffType = "undefined"
-	DiffTypeFull            DiffType = "full"
-	DiffTypePatch           DiffType = "patch"
-	DiffTypeSideBySide      DiffType = "side-by-side"
-	DiffTypeSideBySidePatch DiffType = "side-by-side-patch"
-)
-
-var DiffTypeList = DiffTypes{DiffTypeFull, DiffTypePatch, DiffTypeSideBySide, DiffTypeSideBySidePatch}
-
-func ParseDiffType(s string) (DiffType, error) {
-	for _, x := range DiffTypeList {
-		if strings.EqualFold(string(x), s) {
-			return x, nil
-		}
-	}
-	return DiffTypeUndefined, fmt.Errorf("unknown diff format: %s", s)
-}
-
-type DiffTypes []DiffType
-
-func (d DiffTypes) StringSlice() []string {
-	result := make([]string, 0, len(d))
-	for _, x := range d {
-		result = append(result, string(x))
-	}
-	return result
 }

@@ -1,8 +1,12 @@
-package params
+package rawparams
 
 import (
 	"strings"
 
+	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
@@ -42,9 +46,9 @@ func (s *SchemaLoadConfigRaw) GetMethod() types.CommandType {
 	return types.CommandTypeSchemaLoad
 }
 
-func (s *SchemaLoadConfigRaw) UnRaw() (RunCommand, error) {
+func (s *SchemaLoadConfigRaw) UnRaw() (executor.RunCommand, error) {
 	var err error
-	result := NewSchemaLoadConfig()
+	result := params.NewSchemaLoadConfig()
 	data := s.Data
 
 	// if data does not contain data, read the file reference
@@ -58,4 +62,8 @@ func (s *SchemaLoadConfigRaw) UnRaw() (RunCommand, error) {
 	// set the data
 	result.SetSchema(data)
 	return result, nil
+}
+
+func init() {
+	command_registry.GetCommandRegistry().Register(types.CommandTypeSchemaLoad, func() rpc.RpcRawParams { return NewSchemaLoadConfigRaw() })
 }

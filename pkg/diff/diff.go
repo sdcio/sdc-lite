@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/sdcio/sdc-lite/pkg/configdiff/enum"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 )
 
@@ -62,11 +63,11 @@ func NewDifferJson(old, new any) (*Differ, error) {
 
 func (d *Differ) Diff() (string, error) {
 	switch d.config.GetDiffType() {
-	case params.DiffTypeFull:
+	case enum.DiffTypeFull:
 		return d.generateFullDiffString(), nil
-	case params.DiffTypePatch:
+	case enum.DiffTypePatch:
 		return d.generateContextDiffString(), nil
-	case params.DiffTypeSideBySidePatch:
+	case enum.DiffTypeSideBySidePatch:
 		return d.generateSideBySideContextDiffString(), nil
 	default:
 		// case types.DiffTypeSideBySide:

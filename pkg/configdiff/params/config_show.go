@@ -2,8 +2,10 @@ package params
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
@@ -50,5 +52,31 @@ func (c *ConfigShowConfig) String() string {
 }
 
 func (c *ConfigShowConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
-	return cde.TreeShow(ctx, c)
+	entry, err := cde.TreeShow(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	switch c.GetOutputFormat() {
+	case types.ConfigFormatXml:
+		return output.NewConfigShowXmlOutput(entry), nil
+	case types.ConfigFormatJson:
+		return output.NewConfigShowJsonOutput(entry), nil
+	case types.ConfigFormatJsonIetf:
+		return output.NewConfigShowJsonIetfOutput(entry), nil
+	case types.ConfigFormatYaml:
+		return output.NewConfigShowYamlOutput(entry), nil
+	case types.ConfigFormatXPath:
+		// TODO
+		// xpv := visitors.NewXPathVisitor()
+		// err := entry.Walk(ctx, xpv)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// return xpv.GetResult(), nil
+		return &output.NullOutput{}, nil
+	case types.ConfigFormatSdc:
+		fallthrough
+	default:
+		return nil, fmt.Errorf("output in %s format not supported", c.GetOutputFormat())
+	}
 }

@@ -11,8 +11,10 @@ import (
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
@@ -34,7 +36,7 @@ func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
 	// Check if file exists
 	fw := utils.NewFileWrapper(p.filename)
 
-	cmdReg := params.GetCommandRegistry()
+	cmdReg := command_registry.GetCommandRegistry()
 
 	fileRC, err := fw.ReadCloser(ctx)
 	if err != nil {
@@ -77,7 +79,7 @@ func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
 		default:
 		}
 
-		envelope := &params.JsonRpcMessageRaw{}
+		envelope := &rpc.JsonRpcMessageRaw{}
 		if err := jd.Decode(envelope); err != nil {
 			if errors.Is(err, io.EOF) {
 				if isFIFO {
@@ -148,7 +150,7 @@ func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
 func PipelineAppendStep(file *os.File, s PipelineStep) error {
 
 	// wrap in the JsonRPCHeader
-	jrpcr := params.NewJsonRpcMessage(s.GetMethod(), rand.Int(), s)
+	jrpcr := rpc.NewJsonRpcMessage(s.GetMethod(), rand.Int(), s)
 
 	// json encode and write to file
 	enc := json.NewEncoder(file)
@@ -159,6 +161,6 @@ func PipelineAppendStep(file *os.File, s PipelineStep) error {
 }
 
 type PipelineStep interface {
-	UnRaw() (params.RunCommand, error)
+	UnRaw() (executor.RunCommand, error)
 	GetMethod() types.CommandType
 }

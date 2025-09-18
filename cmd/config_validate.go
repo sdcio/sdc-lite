@@ -5,9 +5,8 @@ import (
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
-	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +21,7 @@ var configValidateCmd = &cobra.Command{
 
 		ctx := cmd.Context()
 
-		rawParam := &params.ConfigValidateRaw{}
+		rawParam := &rawparams.ConfigValidateRaw{}
 
 		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
@@ -48,5 +47,4 @@ func init() {
 	AddRpcOutputFlag(configValidateCmd)
 	AddDetailedFlag(configValidateCmd)
 	EnableFlagAndDisableFileCompletion(configValidateCmd)
-	params.GetCommandRegistry().Register(types.CommandTypeConfigValidate, func() params.RpcRawParams { return params.NewConfigValidateRaw() })
 }
