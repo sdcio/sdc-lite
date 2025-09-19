@@ -3,7 +3,7 @@ package rawparams
 import (
 	"fmt"
 
-	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/commandregistry"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
@@ -121,5 +121,5 @@ func (i *ConfigLoadRaw) UnRaw() (executor.RunCommand, error) {
 }
 
 func init() {
-	command_registry.GetCommandRegistry().Register(types.CommandTypeConfigLoad, func() rpc.RpcRawParams { return NewConfigLoadRaw() })
+	commandregistry.GetCommandRegistry().Register(types.CommandTypeConfigLoad, func() rpc.RpcRawParams { return NewConfigLoadRaw() })
 }

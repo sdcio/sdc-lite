@@ -29,8 +29,6 @@ func (c *ConfigLoad) Run(ctx context.Context, cde Executor) (interfaces.Output, 
 	if err != nil {
 		return nil, err
 	}
-
-	result := output.NewErrorOutput(err)
-
+	result := output.NewNullOutput()
 	return result, nil
 }

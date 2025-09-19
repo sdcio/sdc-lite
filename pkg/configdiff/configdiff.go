@@ -17,7 +17,7 @@ import (
 	treejson "github.com/sdcio/data-server/pkg/tree/importer/json"
 	treexml "github.com/sdcio/data-server/pkg/tree/importer/xml"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
-	"github.com/sdcio/data-server/pkg/utils"
+	dsUtils "github.com/sdcio/data-server/pkg/utils"
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
@@ -27,6 +27,8 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/schemaclient"
 	"github.com/sdcio/sdc-lite/pkg/schemaloader"
 	"github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/utils"
+
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
@@ -156,12 +158,17 @@ func (c *ConfigDiff) loadSchemaStore(ctx context.Context, readOnly bool, vendor 
 		return c.schemaStore, nil
 	}
 	if c.schemaStore != nil {
-		err := c.closeSchemaStore()
-		if err != nil {
-			// TODO log error
-		}
+		_ = c.closeSchemaStore()
 	}
-	s, err := persiststore.New(ctx, filepath.Join(c.config.SchemaStorePath(), strings.ToLower(vendor), strings.ToLower(version)), &schemaSrvConf.SchemaPersistStoreCacheConfig{
+
+	storePath := filepath.Join(c.config.SchemaStorePath(), strings.ToLower(vendor), strings.ToLower(version))
+
+	if !utils.FolderExists(storePath) {
+		utils.CreateFolder(storePath)
+		readOnly = false
+	}
+
+	s, err := persiststore.New(ctx, storePath, &schemaSrvConf.SchemaPersistStoreCacheConfig{
 		WithDescription: false,
 		ReadOnly:        readOnly,
 	})
@@ -378,12 +385,12 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 	}
 
 	// convert base path to sdcpb.path
-	path, err := utils.ParsePath(intent.GetBasePath())
+	path, err := sdcpb.ParsePath(intent.GetBasePath())
 	if err != nil {
 		return err
 	}
 	// convert sdcpb.path to string slice path
-	strSlicePath := utils.ToStrings(path, false, false)
+	strSlicePath := dsUtils.ToStrings(path, false, false)
 
 	err = c.tree.ImportConfig(ctx, strSlicePath, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
 	if err != nil {
@@ -394,8 +401,7 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 }
 
 func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConfig) (params.ConfigShowInterface, error) {
-	var err error
-	err = c.tree.FinishInsertionPhase(ctx)
+	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -439,8 +445,8 @@ func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) 
 	}
 
 	return c.completePathName(ctx, toCompletePath)
-
 }
+
 func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path, leftover string) []string {
 	attrName, attrVal, _ := strings.Cut(leftover, "=")
 

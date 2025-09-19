@@ -20,6 +20,7 @@ func WriteOutput(o interfaces.Output) (err error) {
 	switch {
 	case jsonOutput:
 		err = o.WriteToJson(os.Stdout)
+		return err
 	case detailed:
 		output, err := o.ToStringDetails()
 		if err != nil {
@@ -33,7 +34,7 @@ func WriteOutput(o interfaces.Output) (err error) {
 		}
 		fmt.Print(output)
 	}
-	return err
+	return nil
 }
 
 func RunFromRaw(ctx context.Context, opts config.ConfigOpts, optsP config.ConfigPersistentOpts, persist bool, rpcParams ...rpc.RpcRawParams) (interfaces.Output, error) {

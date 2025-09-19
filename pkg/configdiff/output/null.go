@@ -12,7 +12,7 @@ type NullOutput struct {
 
 var _ interfaces.Output = (*NullOutput)(nil)
 
-func NewErrorOutput(err error) *NullOutput {
+func NewNullOutput() *NullOutput {
 	return &NullOutput{}
 }
 

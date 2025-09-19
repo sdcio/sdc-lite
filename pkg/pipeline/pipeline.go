@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/commandregistry"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
@@ -36,7 +36,7 @@ func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
 	// Check if file exists
 	fw := utils.NewFileWrapper(p.filename)
 
-	cmdReg := command_registry.GetCommandRegistry()
+	cmdReg := commandregistry.GetCommandRegistry()
 
 	fileRC, err := fw.ReadCloser(ctx)
 	if err != nil {

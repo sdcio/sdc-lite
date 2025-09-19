@@ -1,7 +1,7 @@
 package rawparams
 
 import (
-	"github.com/sdcio/sdc-lite/pkg/configdiff/command_registry"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/commandregistry"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/enum"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
@@ -103,5 +103,5 @@ func (d *DiffConfigRaw) UnRaw() (executor.RunCommand, error) {
 }
 
 func init() {
-	command_registry.GetCommandRegistry().Register(types.CommandTypeConfigDiff, func() rpc.RpcRawParams { return NewDiffConfigRaw() })
+	commandregistry.GetCommandRegistry().Register(types.CommandTypeConfigDiff, func() rpc.RpcRawParams { return NewDiffConfigRaw() })
 }

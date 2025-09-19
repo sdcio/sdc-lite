@@ -1,4 +1,4 @@
-package command_registry
+package commandregistry
 
 import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"

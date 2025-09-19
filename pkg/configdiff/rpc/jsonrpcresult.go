@@ -54,12 +54,15 @@ func (j *JsonRpcResult) JsonMarshall(outFormat OutFormat) ([]byte, error) {
 	result := struct {
 		Id      int    `json:"id"`
 		JsonRpc string `json:"jsonrpc"`
-		Error   error  `json:"error,omitempty"`
+		Error   string `json:"error,omitempty"`
 		Result  any    `json:"result,omitempty"`
 	}{
 		Id:      j.id,
 		JsonRpc: j.jsonrpc,
-		Error:   j.err,
+	}
+
+	if j.err != nil {
+		result.Error = j.err.Error()
 	}
 
 	if j.result != nil {
