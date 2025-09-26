@@ -110,5 +110,5 @@ esac
 
 echo "✅ sdc-lite installed successfully!"
 echo "ℹ️  Restart your shell or run 'source ~/.bashrc' / 'source ~/.zshrc' to enable completions."
-sdc-lite --version
+sdc-lite version
 
