@@ -1,4 +1,4 @@
-name: CI/CD Test per PR
+name: test
 on:
   workflow_dispatch:
   pull_request:
@@ -23,29 +23,7 @@ jobs:
         run: go test -cover -coverprofile=coverage.txt ./...
         env:
           CGO_ENABLED: 0
-          
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  pr-release:
-    needs: unittest
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: setup go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-      - name: Run GoReleaser
-        id: goreleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean -f .goreleaser.yml --skip=validate
-        env:
-          GITHUB_TOKEN: ${{ secrets.IPTECHARCH_GITHUB_PAT }}
-          PR: ${{ github.event.pull_request.number }}
