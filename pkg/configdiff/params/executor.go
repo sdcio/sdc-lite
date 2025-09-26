@@ -16,7 +16,7 @@ type Executor interface {
 	SchemaDownload(ctx context.Context, schemaDefinition *SchemaLoadConfig) (*sdcpb.Schema, error)
 	TreeLoadData(ctx context.Context, cl *ConfigLoad) error
 	TreeShow(ctx context.Context, config *ConfigShowConfig) (ConfigShowInterface, error)
-	TreeValidate(ctx context.Context) (types.ValidationResults, *types.ValidationStatOverall, error)
+	TreeValidate(ctx context.Context) (types.ValidationResults, *types.ValidationStats, error)
 	TreeBlame(ctx context.Context, cb *ConfigBlameParams) (*sdcpb.BlameTreeElement, error)
 }
 

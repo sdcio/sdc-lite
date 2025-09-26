@@ -16,6 +16,7 @@ package schemaclient
 
 import (
 	"context"
+	"sync"
 
 	schemaClient "github.com/sdcio/data-server/pkg/datastore/clients/schema"
 	"github.com/sdcio/schema-server/pkg/store"
@@ -25,47 +26,47 @@ import (
 type SchemaClientBoundImpl struct {
 	schemastore store.Store
 	schemaRef   *sdcpb.Schema
+
+	index      sync.Map // string -> schemaIndexEntry
+	indexMutex sync.RWMutex
 }
 
 func NewMemSchemaClientBound(schemastore store.Store, schemaRef *sdcpb.Schema) schemaClient.SchemaClientBound {
 	return &SchemaClientBoundImpl{
 		schemastore: schemastore,
 		schemaRef:   schemaRef,
+		index:       sync.Map{},
 	}
-}
-
-// GetSchemaSlicePath retrieves the schema for the given path
-func (r *SchemaClientBoundImpl) GetSchemaSlicePath(ctx context.Context, path []string) (*sdcpb.GetSchemaResponse, error) {
-	sdcpbPath, err := r.ToPath(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.schemastore.GetSchema(ctx, &sdcpb.GetSchemaRequest{
-		Schema:          r.schemaRef,
-		Path:            sdcpbPath,
-		WithDescription: false,
-	})
 }
 
 // GetSchemaSdcpbPath retrieves the schema for the given path
 func (r *SchemaClientBoundImpl) GetSchemaSdcpbPath(ctx context.Context, path *sdcpb.Path) (*sdcpb.GetSchemaResponse, error) {
-	return r.schemastore.GetSchema(ctx, &sdcpb.GetSchemaRequest{
+
+	// convert the path into a keyless path, for schema index lookups.
+	keylessPath := path.ToXPath(true)
+
+	entryAny, loaded := r.index.LoadOrStore(keylessPath, schemaClient.NewSchemaIndexEntry(nil, nil))
+	entry := entryAny.(*schemaClient.SchemaIndexEntry)
+
+	// Lock the entry to prevent race conditions
+	entry.Lock()
+	defer entry.Unlock()
+
+	// if it existed, some other goroutine is already fetching the schema
+	if loaded && entry.GetReady() {
+		return entry.GetSchemaResponse(), entry.GetError()
+	}
+
+	// retrieve Schema via schemaclient
+	schema, err := r.schemastore.GetSchema(ctx, &sdcpb.GetSchemaRequest{
 		Schema:          r.schemaRef,
 		Path:            path,
 		WithDescription: false,
 	})
-}
+	entry.SetSchemaResponseAndError(schema, err)
 
-func (r *SchemaClientBoundImpl) ToPath(ctx context.Context, path []string) (*sdcpb.Path, error) {
-	tpr, err := r.schemastore.ToPath(ctx, &sdcpb.ToPathRequest{
-		PathElement: path,
-		Schema:      r.schemaRef,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return tpr.GetPath(), nil
+	return entry.Get()
+
 }
 
 func (r *SchemaClientBoundImpl) GetSchemaElements(ctx context.Context, p *sdcpb.Path, done chan struct{}) (chan *sdcpb.GetSchemaResponse, error) {

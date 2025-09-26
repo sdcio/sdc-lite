@@ -6,19 +6,17 @@ toolchain go1.24.3
 
 replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 
-replace github.com/sdcio/schema-server => /home/mava/projects/schema-server
-
 require (
-	github.com/beevik/etree v1.5.1
-	github.com/sdcio/config-server v0.0.53
-	github.com/sdcio/data-server v0.0.63
-	github.com/sdcio/schema-server v0.0.31
-	github.com/sdcio/sdc-protos v0.0.45
+	github.com/beevik/etree v1.6.0
+	github.com/sdcio/config-server v0.0.54
+	github.com/sdcio/data-server v0.0.64
+	github.com/sdcio/schema-server v0.0.33
+	github.com/sdcio/sdc-protos v0.0.46
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.10
 	golang.org/x/term v0.34.0
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/protobuf v1.36.9
 	k8s.io/apimachinery v0.33.3
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -62,7 +60,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
-	github.com/henderiw/apiserver-builder v0.0.4-0.20250430134025-b51704117454 // indirect
+	github.com/henderiw/apiserver-builder v0.0.4 // indirect
 	github.com/henderiw/apiserver-store v0.0.3-0.20240816041837-2a8a0a2f583e // indirect
 	github.com/henderiw/iputil v0.0.0-20231218081610-37f78ad9c81c // indirect
 	github.com/henderiw/logger v0.0.0-20230911123436-8655829b1abe // indirect
@@ -84,12 +82,12 @@ require (
 	github.com/otiai10/copy v1.14.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.23.0 // indirect
+	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.65.0 // indirect
+	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/sdcio/cache v0.0.38 // indirect
-	github.com/sdcio/yang-parser v0.0.11 // indirect
+	github.com/sdcio/yang-parser v0.0.12 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -109,26 +107,27 @@ require (
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
-	google.golang.org/grpc v1.75.0 // indirect
+	google.golang.org/grpc v1.75.1 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.33.0 // indirect
+	k8s.io/api v0.33.1 // indirect
 	k8s.io/apiserver v0.33.0 // indirect
-	k8s.io/client-go v0.33.0 // indirect
-	k8s.io/component-base v0.33.0 // indirect
+	k8s.io/client-go v0.33.1 // indirect
+	k8s.io/component-base v0.33.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect

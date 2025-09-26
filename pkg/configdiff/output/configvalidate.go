@@ -13,10 +13,10 @@ import (
 
 type ConfigValidateOutput struct {
 	result types.ValidationResults
-	stats  *types.ValidationStatOverall
+	stats  *types.ValidationStats
 }
 
-func NewConfigValidateOutput(result types.ValidationResults, stats *types.ValidationStatOverall) *ConfigValidateOutput {
+func NewConfigValidateOutput(result types.ValidationResults, stats *types.ValidationStats) *ConfigValidateOutput {
 	return &ConfigValidateOutput{
 		result: result,
 		stats:  stats,
@@ -50,14 +50,14 @@ func (cvo *ConfigValidateOutput) ToStringDetails() (string, error) {
 
 	fmt.Fprintln(sb, "Validations performed:")
 	// sort the map, by getting the keys first
-	keys := make([]string, 0, len(cvo.stats.GetCounter()))
+	keys := make([]types.StatType, 0, len(cvo.stats.GetCounter()))
 	for typ := range cvo.stats.GetCounter() {
 		keys = append(keys, typ)
 	}
 
 	// sorting the keys
 	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] < keys[j]
+		return keys[i].String() < keys[j].String()
 	})
 
 	indent := "  "
@@ -83,7 +83,7 @@ func (cvo *ConfigValidateOutput) ToStruct() (any, error) {
 	result := struct {
 		Errors   []string
 		Warnings []string
-		Stats    *types.ValidationStatOverall
+		Stats    *types.ValidationStats
 	}{
 		Errors:   cvo.result.ErrorsStr(),
 		Warnings: cvo.result.WarningsStr(),

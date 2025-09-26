@@ -17,7 +17,6 @@ import (
 	treejson "github.com/sdcio/data-server/pkg/tree/importer/json"
 	treexml "github.com/sdcio/data-server/pkg/tree/importer/xml"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
-	dsUtils "github.com/sdcio/data-server/pkg/utils"
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
@@ -74,7 +73,7 @@ func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, er
 		return nil, err
 	}
 	// navigate to path
-	entry, err := c.tree.NavigateSdcpbPath(ctx, path.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +107,7 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 		return nil, err
 	}
 
-	entry, err := runningTree.NavigateSdcpbPath(ctx, path.GetElem(), true)
+	entry, err := runningTree.NavigateSdcpbPath(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +167,7 @@ func (c *ConfigDiff) loadSchemaStore(ctx context.Context, readOnly bool, vendor 
 		readOnly = false
 	}
 
-	s, err := persiststore.New(ctx, storePath, &schemaSrvConf.SchemaPersistStoreCacheConfig{
-		WithDescription: false,
-		ReadOnly:        readOnly,
-	})
+	s, err := persiststore.New(ctx, storePath, &schemaSrvConf.SchemaPersistStoreCacheConfig{WithDescription: false}, readOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +326,7 @@ func (c *ConfigDiff) TreeBlame(ctx context.Context, params *params.ConfigBlamePa
 	cbv := tree.NewBlameConfigVisitor(params.GetIncludeDefaults())
 	if params.GetPath() != nil {
 		// process with a provided path
-		start, err := c.tree.NavigateSdcpbPath(ctx, params.GetPath().GetElem(), true)
+		start, err := c.tree.NavigateSdcpbPath(ctx, params.GetPath())
 		if err != nil {
 			return nil, err
 		}
@@ -389,10 +385,8 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 	if err != nil {
 		return err
 	}
-	// convert sdcpb.path to string slice path
-	strSlicePath := dsUtils.ToStrings(path, false, false)
 
-	err = c.tree.ImportConfig(ctx, strSlicePath, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
+	err = c.tree.ImportConfig(ctx, path, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
 	if err != nil {
 		return err
 	}
@@ -406,14 +400,14 @@ func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConf
 		return nil, err
 	}
 
-	return c.tree.NavigateSdcpbPath(ctx, config.GetPath().GetElem(), true)
+	return c.tree.NavigateSdcpbPath(ctx, config.GetPath())
 }
 
 func (c *ConfigDiff) GetJson(onlyNewOrUpdated bool) (any, error) {
 	return c.tree.ToJson(onlyNewOrUpdated)
 }
 
-func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStatOverall, error) {
+func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStats, error) {
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -450,7 +444,7 @@ func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) 
 func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path, leftover string) []string {
 	attrName, attrVal, _ := strings.Cut(leftover, "=")
 
-	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 	if err != nil {
 		return nil
 	}
@@ -488,7 +482,7 @@ func (c *ConfigDiff) completeKeyName(ctx context.Context, toCompletePath *sdcpb.
 	}
 
 	toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key = nil
-	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 	if err != nil {
 		return nil
 	}
@@ -507,7 +501,7 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 	var incompleteLastElem *sdcpb.PathElem
 	if len(toCompletePath.Elem) > 0 {
 		// check if the provied path points to something that exists
-		_, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+		_, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 		if err != nil {
 			// path does not exist, so lets strip last elem
 			if len(toCompletePath.Elem[len(toCompletePath.Elem)-1].Key) > 0 {
@@ -521,7 +515,7 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 		}
 	}
 
-	entry, err = c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	entry, err = c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 	if err != nil {
 		return nil
 	}
@@ -542,10 +536,7 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 	results := make([]string, 0, len(resultEntries))
 	//convert to xpath
 	for _, e := range resultEntries {
-		sdcpbPath, err := e.SdcpbPath()
-		if err != nil {
-			continue
-		}
+		sdcpbPath := e.SdcpbPath()
 		if len(e.GetSchemaKeys()) > 0 {
 			results = append(results, fmt.Sprintf("/%s[%s=", sdcpbPath.ToXPath(false), e.GetSchemaKeys()[0]))
 		}
