@@ -41,6 +41,7 @@ func (o *ConfigShowJsonIetfOutput) ToStruct() (any, error) {
 }
 func (o *ConfigShowJsonIetfOutput) WriteToJson(w io.Writer) error {
 	jenc := json.NewEncoder(w)
+	jenc.SetIndent("", "  ")
 	jVal, err := o.ToStruct()
 	if err != nil {
 		return err
