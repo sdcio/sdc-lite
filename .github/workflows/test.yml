@@ -1,0 +1,29 @@
+name: test
+on:
+  workflow_dispatch:
+  pull_request:
+  pull_request_target:
+    types: [labeled]
+  push:
+    branches:
+      - "main"
+      - "!releases/**"
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v5
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: run go test
+        run: go test -cover -coverprofile=coverage.txt ./...
+        env:
+          CGO_ENABLED: 0
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
