@@ -14,10 +14,15 @@ const (
 	ConfigFormatXml      ConfigFormat = "xml"
 	ConfigFormatYaml     ConfigFormat = "yaml"
 	ConfigFormatSdc      ConfigFormat = "sdc"
+	ConfigFormatXPath    ConfigFormat = "xpath"
 )
 
+func (c ConfigFormat) String() string {
+	return string(c)
+}
+
 // ConfigFormatsList List of all the known config formats
-var ConfigFormatsList = ConfigFormats{ConfigFormatJson, ConfigFormatJsonIetf, ConfigFormatXml, ConfigFormatSdc, ConfigFormatYaml}
+var ConfigFormatsList = ConfigFormats{ConfigFormatJson, ConfigFormatJsonIetf, ConfigFormatXml, ConfigFormatSdc, ConfigFormatYaml, ConfigFormatXPath}
 
 func ParseConfigFormat(s string) (ConfigFormat, error) {
 	for _, n := range ConfigFormatsList {

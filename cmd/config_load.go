@@ -11,6 +11,9 @@ import (
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 	"github.com/spf13/cobra"
@@ -32,22 +35,13 @@ var configLoadCmd = &cobra.Command{
 		var err error
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
-		c, err := config.NewConfigPersistent(opts, optsP)
-		if err != nil {
-			return err
-		}
 
-		cdp, err := configdiff.NewConfigDiffPersistence(ctx, c)
-		if err != nil {
-			return err
-		}
-		err = cdp.InitTargetFolder(ctx)
-		if err != nil {
-			return err
-		}
+		rawParam := rawparams.NewConfigLoadRaw()
+		rawParam.SetFormat(configurationFileFormatStr).SetFile(configurationFile).SetFlags(&rawparams.UpdateInsertFlagsRaw{})
+
 		configFormat, err := types.ParseConfigFormat(configurationFileFormatStr)
 		if err != nil {
 			return err
@@ -59,34 +53,52 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		var intent *types.Intent
-
 		switch configFormat {
 		case types.ConfigFormatJson, types.ConfigFormatJsonIetf, types.ConfigFormatXml:
-			intent = types.NewIntent(intentName, priority, treetypes.NewUpdateInsertFlags())
-			intent.SetData(configFormat, configByte)
+			// TODO:
+			// lc.SetFlags()
+			rawParam.SetName(intentName).SetPrio(priority)
+			// if data is comming from stdin, store it in data
+			if strings.TrimSpace(configurationFile) == "-" {
+				rawParam.SetData(configByte)
+			}
 		case types.ConfigFormatSdc:
 
 			sdcC, err := LoadSDCConfigCR(configByte)
 			if err != nil {
 				return err
 			}
-			intent, err = ConvertSDCConfigToInternalIntent(ctx, cdp.ConfigDiff, sdcC)
+
+			c, err := config.NewConfigPersistent(opts, optsP)
+			if err != nil {
+				return err
+			}
+
+			cdp, err := configdiff.NewConfigDiffPersistence(ctx, c)
+			if err != nil {
+				return err
+			}
+
+			rawParam, err = ConvertSDCConfigToInternalIntent(ctx, cdp.ConfigDiff, sdcC)
 			if err != nil {
 				return err
 			}
 		}
-		err = cdp.TreeLoadData(ctx, intent)
+
+		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
+		if rpcOutput {
+			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
+		}
+
+		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)
 		if err != nil {
 			return err
 		}
 
-		err = cdp.Persist(ctx)
+		err = WriteOutput(out)
 		if err != nil {
 			return err
 		}
-
-		fmt.Printf("File: %s - %s - successfully loaded\n", configurationFile, intent)
 
 		return nil
 	},
@@ -98,6 +110,7 @@ func init() {
 	configLoadCmd.Flags().StringVar(&configurationFileFormatStr, "file-format", "", fmt.Sprintf("The format of the config to be loaded [ %s ]", strings.Join(types.ConfigFormatsList.StringSlice(), ", ")))
 	configLoadCmd.Flags().Int32Var(&priority, "priority", 500, "The defined priority of the configuration")
 	configLoadCmd.Flags().StringVar(&intentName, "intent-name", "", "The name of the configuration intent")
+	AddRpcOutputFlag(configLoadCmd)
 	EnableFlagAndDisableFileCompletion(configLoadCmd)
 }
 
@@ -117,14 +130,14 @@ func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {
 	return sdcC, nil
 }
 
-func ConvertSDCConfigToInternalIntent(ctx context.Context, cdp *configdiff.ConfigDiff, sdcConfig *v1alpha1.Config) (*types.Intent, error) {
+func ConvertSDCConfigToInternalIntent(ctx context.Context, cd *configdiff.ConfigDiff, sdcConfig *v1alpha1.Config) (*rawparams.ConfigLoadRaw, error) {
 	// create a new config diff instance that we can use to aggregate the multiple path / values from the cr spec
-	cd, err := cdp.CopyEmptyConfigDiff(ctx)
+	cdNew, err := cd.CopyEmptyConfigDiff(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// create the
+	// create the intent
 	intent := types.NewIntent(sdcConfig.Name, int32(sdcConfig.Spec.Priority), treetypes.NewUpdateInsertFlags())
 	for _, c := range sdcConfig.Spec.Config {
 		jsonConfigVal := c.Value.Raw
@@ -133,13 +146,13 @@ func ConvertSDCConfigToInternalIntent(ctx context.Context, cdp *configdiff.Confi
 		}
 		intent.SetData(types.ConfigFormatJson, jsonConfigVal).SetBasePath(c.Path)
 
-		err = cd.TreeLoadData(ctx, intent)
+		err = cdNew.TreeLoadData(ctx, params.NewConfigLoad(intent))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	jsonConf, err := cd.GetJson(false)
+	jsonConf, err := cdNew.GetJson(false)
 	if err != nil {
 		return nil, err
 	}
@@ -149,8 +162,9 @@ func ConvertSDCConfigToInternalIntent(ctx context.Context, cdp *configdiff.Confi
 		return nil, err
 	}
 
-	intent = types.NewIntent(sdcConfig.Name, int32(sdcConfig.Spec.Priority), treetypes.NewUpdateInsertFlags())
-	intent.SetData(types.ConfigFormatJson, jsonConfByte)
+	intentRaw := rawparams.NewConfigLoadRaw()
+	intentRaw.SetName(sdcConfig.Name).SetPrio(int32(sdcConfig.Spec.Priority)).SetFlags(&rawparams.UpdateInsertFlagsRaw{})
+	intentRaw.SetFormat(types.ConfigFormatJson.String()).SetData(jsonConfByte)
 
-	return intent, nil
+	return intentRaw, nil
 }

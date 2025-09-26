@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/utils"
@@ -18,7 +16,7 @@ var SchemaRemoveCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)

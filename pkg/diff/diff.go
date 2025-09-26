@@ -6,7 +6,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/enum"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 )
 
 // ANSI color codes
@@ -26,7 +27,7 @@ type diffLine struct {
 type Differ struct {
 	old    []string
 	new    []string
-	config *types.DiffConfig
+	config *params.DiffConfig
 }
 
 func NewDiffer(old, new []string) *Differ {
@@ -36,7 +37,7 @@ func NewDiffer(old, new []string) *Differ {
 	}
 }
 
-func (d *Differ) SetConfig(dc *types.DiffConfig) *Differ {
+func (d *Differ) SetConfig(dc *params.DiffConfig) *Differ {
 	d.config = dc
 	return d
 }
@@ -62,11 +63,11 @@ func NewDifferJson(old, new any) (*Differ, error) {
 
 func (d *Differ) Diff() (string, error) {
 	switch d.config.GetDiffType() {
-	case types.DiffTypeFull:
+	case enum.DiffTypeFull:
 		return d.generateFullDiffString(), nil
-	case types.DiffTypePatch:
+	case enum.DiffTypePatch:
 		return d.generateContextDiffString(), nil
-	case types.DiffTypeSideBySidePatch:
+	case enum.DiffTypeSideBySidePatch:
 		return d.generateSideBySideContextDiffString(), nil
 	default:
 		// case types.DiffTypeSideBySide:

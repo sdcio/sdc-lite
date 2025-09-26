@@ -1,4 +1,4 @@
-package types
+package output
 
 import (
 	"encoding/json"
@@ -29,12 +29,16 @@ func (s *SchemaOutput) WriteToJson(w io.Writer) error {
 	return jEnc.Encode(s)
 }
 
-func (s *SchemaOutput) ToString() string {
-	return fmt.Sprintf("Vendor: %s, Version: %s", s.Vendor, s.Version)
+func (s *SchemaOutput) ToString() (string, error) {
+	return fmt.Sprintf("Vendor: %s, Version: %s", s.Vendor, s.Version), nil
 }
 
-func (s *SchemaOutput) ToStringDetails() string {
+func (s *SchemaOutput) ToStringDetails() (string, error) {
 	return s.ToString()
+}
+
+func (s *SchemaOutput) ToStruct() (any, error) {
+	return s, nil
 }
 
 type SchemaOutputSlice []*SchemaOutput
@@ -49,15 +53,19 @@ func NewSchemaOutputList(ss []*sdcpb.Schema) SchemaOutputSlice {
 	return result
 }
 
-func (s SchemaOutputSlice) ToString() string {
+func (s SchemaOutputSlice) ToString() (string, error) {
 	sb := &strings.Builder{}
 	for _, schema := range s {
-		fmt.Fprint(sb, schema.ToString())
+		schemaString, err := schema.ToString()
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprint(sb, schemaString)
 	}
-	return sb.String()
+	return sb.String(), nil
 }
 
-func (s SchemaOutputSlice) ToStringDetails() string {
+func (s SchemaOutputSlice) ToStringDetails() (string, error) {
 	return s.ToString()
 }
 
@@ -65,4 +73,8 @@ func (s SchemaOutputSlice) WriteToJson(w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(s)
+}
+
+func (s SchemaOutputSlice) ToStruct() (any, error) {
+	return s, nil
 }

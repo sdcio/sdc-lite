@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -131,14 +132,14 @@ func (t *Target) GetSchema() *sdcpb.Schema {
 	return t.schema
 }
 
-func (t *Target) Export() *TargetOutput {
-	result := &TargetOutput{
+func (t *Target) Export() *output.TargetOutput {
+	result := &output.TargetOutput{
 		TargetName: t.config.TargetName(),
 		Intents:    t.intents.Export(),
 		TargetPath: t.config.TargetPath(),
 	}
 	if t.schema != nil {
-		result.Schema = &SchemaOutput{
+		result.Schema = &output.SchemaOutput{
 			Vendor:  t.schema.Vendor,
 			Version: t.schema.Version,
 		}
@@ -153,8 +154,8 @@ func (t *Targets) Add(w *Target) {
 	*t = append(*t, w)
 }
 
-func (t Targets) Export() TargetOutputSlice {
-	result := make([]*TargetOutput, 0, len(t))
+func (t Targets) Export() output.TargetOutputSlice {
+	result := make([]*output.TargetOutput, 0, len(t))
 	for _, target := range t {
 		result = append(result, target.Export())
 	}

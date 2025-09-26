@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -31,10 +33,10 @@ func (f *FileWrapper) SetInsecure(b bool) {
 	f.insecure = b
 }
 
-func (f *FileWrapper) ReadCloser() (io.ReadCloser, error) {
+func (f *FileWrapper) ReadCloser(ctx context.Context) (io.ReadCloser, error) {
 	switch {
-	case f.ref == "-":
-		return os.Stdin, nil
+	case f.ref == "" || f.ref == "-":
+		return NewCtxReader(ctx, os.Stdin), nil
 	case strings.HasPrefix(f.ref, "http"):
 
 		tr := &http.Transport{
@@ -42,10 +44,19 @@ func (f *FileWrapper) ReadCloser() (io.ReadCloser, error) {
 		}
 		client := &http.Client{Transport: tr}
 
-		resp, err := client.Get(f.ref)
+		req, err := http.NewRequestWithContext(ctx, "GET", f.ref, nil)
 		if err != nil {
 			return nil, err
 		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			resp.Body.Close()
+			return nil, fmt.Errorf("http request for %s failed with: %s", f.ref, resp.Status)
+		}
+
 		return resp.Body, nil
 	default:
 		file, err := os.Open(f.ref)
@@ -57,7 +68,7 @@ func (f *FileWrapper) ReadCloser() (io.ReadCloser, error) {
 }
 
 func (f *FileWrapper) Bytes() ([]byte, error) {
-	rc, err := f.ReadCloser()
+	rc, err := f.ReadCloser(context.Background())
 	if err != nil {
 		return nil, err
 	}

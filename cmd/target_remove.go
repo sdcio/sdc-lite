@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
@@ -18,7 +17,7 @@ var targetRemoveCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		opts := config.ConfigOpts{}
 		optsP = append(optsP, config.WithTargetName(targetName))

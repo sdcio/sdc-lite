@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 
-	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
-	cdtypes "github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
+	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/spf13/cobra"
 )
 
@@ -20,39 +19,32 @@ var configValidateCmd = &cobra.Command{
 		var err error
 		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
+
+		rawParam := &rawparams.ConfigValidateRaw{}
+
+		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
+		if rpcOutput {
+			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
+		}
 
 		opts := config.ConfigOpts{}
-		c, err := config.NewConfigPersistent(opts, optsP)
+		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)
 		if err != nil {
 			return err
 		}
 
-		cd, err := configdiff.NewConfigDiffPersistence(ctx, c)
+		err = WriteOutput(out)
 		if err != nil {
 			return err
 		}
-		err = cd.InitTargetFolder(ctx)
-		if err != nil {
-			return err
-		}
-		valResult, valStats, err := cd.TreeValidate(ctx)
-		if err != nil {
-			return err
-		}
-
-		vs := cdtypes.NewValidationStatsOutput(targetName, valResult, valStats)
-
-		err = WriteOutput(vs)
-		if err != nil {
-			return err
-		}
-
 		return nil
 	},
 }
 
 func init() {
 	configCmd.AddCommand(configValidateCmd)
+	AddRpcOutputFlag(configValidateCmd)
+	AddDetailedFlag(configValidateCmd)
 	EnableFlagAndDisableFileCompletion(configValidateCmd)
 }

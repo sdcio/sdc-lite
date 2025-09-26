@@ -319,6 +319,7 @@ Flags:
 - `--file-format string` – One of `json`, `json-ietf`, `xml`, `sdc`, etc.
 - `--priority int` – Config priority (default `500`)
 - `--intent-name string` – Name of the configuration intent
+- `--rpc` - Print the rpc definition for the actual command
 
 #### Bulk load configs
 ```bash
@@ -331,13 +332,15 @@ sdc-lite config bulk -t <target> --files file1.yaml,file2.yaml
 sdc-lite config blame -t <target> [--include-defaults]
 ```
 - `--include-defaults` – Include schema defaults
+- `--rpc` - Print the rpc definition for the actual command
 
 #### Show configuration
 ```bash
 sdc-lite config show -t <target> [-o json] [-a]
 ```
-- `-o, --out-format string` – Output format (`json`, `xml`, etc.)
+- `-o, --out-format string` – Output format (`json`, `xml`,`json_ietf`, etc.)
 - `-a, --all` – Show entire config, not just updates
+- `--rpc` - Print the rpc definition for the actual command
 
 #### Diff config with running
 ```bash
@@ -347,6 +350,7 @@ sdc-lite config diff -t <target> [--type side-by-side-patch] [--context 2] [--no
 - `--context int` – Context lines (default 2)
 - `--no-color` – Disable colored output
 - `-o, --out-format string` – Output format
+- `--rpc` - Print the rpc definition for the actual command
 
 #### Validate configuration
 ```bash
@@ -369,6 +373,7 @@ sdc-lite schema load -t <target> -f schema.yaml [--cleanup]
 ```
 - `-f, --schema-def string` – Schema definition file (**required**)
 - `-c, --cleanup` – Cleanup schema directory after load (default `true`)
+- `--rpc` - Print the rpc definition for the actual command
 
 #### Remove schema
 ```bash
@@ -389,6 +394,15 @@ sdc-lite target show -t <target>
 ```bash
 sdc-lite target remove -t <target>
 ```
+
+### **`pipeline` — Pipeline-based actions**
+Automate sequences of configuration operations.
+
+#### Run a pipeline
+```bash
+sdc-lite pipeline run --file <pipeline.json>
+```
+- `--file string` – Path to the pipeline definition (JSON) file or `-` for stdin. The pipeline file consists of sequential steps, each specified as a JSON-RPC message.
 
 ---
 

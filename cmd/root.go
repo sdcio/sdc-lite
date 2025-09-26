@@ -11,6 +11,7 @@ import (
 
 var optsP = config.ConfigPersistentOpts{}
 var jsonOutput bool
+var rpcOutput bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -24,6 +25,16 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func AddDetailedFlag(c *cobra.Command) error {
+	c.Flags().BoolVarP(&detailed, "detailed", "d", false, "show detailed output")
+	return nil
+}
+
+func AddRpcOutputFlag(c *cobra.Command) error {
+	c.Flags().BoolVar(&rpcOutput, "rpc", false, "return the jsonrpc content for the command")
+	return nil
 }
 
 func AddTargetPersistentFlag(c *cobra.Command) error {

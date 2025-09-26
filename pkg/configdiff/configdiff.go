@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -16,15 +17,17 @@ import (
 	treejson "github.com/sdcio/data-server/pkg/tree/importer/json"
 	treexml "github.com/sdcio/data-server/pkg/tree/importer/xml"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
-	"github.com/sdcio/data-server/pkg/utils"
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/schema-server/pkg/store/persiststore"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/diff"
 	"github.com/sdcio/sdc-lite/pkg/schemaclient"
 	"github.com/sdcio/sdc-lite/pkg/schemaloader"
 	"github.com/sdcio/sdc-lite/pkg/types"
+	"github.com/sdcio/sdc-lite/pkg/utils"
+
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
@@ -36,6 +39,8 @@ type ConfigDiff struct {
 	schema      *sdcpb.Schema
 	schemaStore store.Store
 }
+
+var _ params.Executor = (*ConfigDiff)(nil)
 
 func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
 	llevel, err := log.ParseLevel(c.LogLevel())
@@ -68,7 +73,7 @@ func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, er
 		return nil, err
 	}
 	// navigate to path
-	entry, err := c.tree.NavigateSdcpbPath(ctx, path.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +107,7 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 		return nil, err
 	}
 
-	entry, err := runningTree.NavigateSdcpbPath(ctx, path.GetElem(), true)
+	entry, err := runningTree.NavigateSdcpbPath(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +121,13 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 	return jrunTree, nil
 }
 
-func (c *ConfigDiff) GetDiff(ctx context.Context, dc *types.DiffConfig, path *sdcpb.Path) (string, error) {
+func (c *ConfigDiff) GetDiff(ctx context.Context, dc *params.DiffConfig) (string, error) {
 
-	runningJson, err := c.GetRunningJson(ctx, path)
+	runningJson, err := c.GetRunningJson(ctx, dc.GetPath())
 	if err != nil {
 		log.Warn(err)
 	}
-	treeJson, err := c.GetTreeJson(ctx, path)
+	treeJson, err := c.GetTreeJson(ctx, dc.GetPath())
 	if err != nil {
 		log.Warn(err)
 	}
@@ -141,13 +146,28 @@ func (c *ConfigDiff) SetSchemaStore(s store.Store) {
 	c.schemaStore = s
 }
 
-func (c *ConfigDiff) loadSchemaStore(ctx context.Context) (store.Store, error) {
-	if c.schemaStore != nil {
+func (c *ConfigDiff) closeSchemaStore() error {
+	err := c.schemaStore.Close()
+	c.schemaStore = nil
+	return err
+}
+
+func (c *ConfigDiff) loadSchemaStore(ctx context.Context, readOnly bool, vendor string, version string) (store.Store, error) {
+	if c.schemaStore != nil && c.schemaStore.IsReadOnly() == readOnly {
 		return c.schemaStore, nil
 	}
-	s, err := persiststore.New(ctx, c.config.SchemaStorePath(), &schemaSrvConf.SchemaPersistStoreCacheConfig{
-		WithDescription: false,
-	})
+	if c.schemaStore != nil {
+		_ = c.closeSchemaStore()
+	}
+
+	storePath := filepath.Join(c.config.SchemaStorePath(), strings.ToLower(vendor), strings.ToLower(version))
+
+	if !utils.FolderExists(storePath) {
+		utils.CreateFolder(storePath)
+		readOnly = false
+	}
+
+	s, err := persiststore.New(ctx, storePath, &schemaSrvConf.SchemaPersistStoreCacheConfig{WithDescription: false}, readOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -166,16 +186,7 @@ func (c *ConfigDiff) SchemaRemove(ctx context.Context, vendor string, version st
 	if version == "" {
 		return fmt.Errorf("version must not be empty")
 	}
-	store, err := c.loadSchemaStore(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = store.DeleteSchema(ctx, &sdcpb.DeleteSchemaRequest{
-		Schema: &sdcpb.Schema{
-			Vendor:  vendor,
-			Version: version,
-		},
-	})
+	err := os.RemoveAll(filepath.Join(c.config.SchemaStorePath(), vendor, version))
 	return err
 }
 
@@ -184,35 +195,46 @@ func (c *ConfigDiff) HasSchema() bool {
 }
 
 func (c *ConfigDiff) SchemasList(ctx context.Context) ([]*sdcpb.Schema, error) {
-	store, err := c.loadSchemaStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	lsr, err := store.ListSchema(ctx, &sdcpb.ListSchemaRequest{})
+	vendors, err := os.ReadDir(c.config.SchemaStorePath())
 	if err != nil {
 		return nil, err
 	}
 
-	return lsr.Schema, nil
+	schemas := []*sdcpb.Schema{}
+
+	for _, vendor := range vendors {
+		if !vendor.IsDir() {
+			continue
+		}
+
+		vendorPath := filepath.Join(c.config.SchemaStorePath(), vendor.Name())
+
+		versions, err := os.ReadDir(vendorPath)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, version := range versions {
+			if !version.IsDir() {
+				continue
+			}
+			schemas = append(schemas, &sdcpb.Schema{Vendor: vendor.Name(), Version: version.Name()})
+		}
+	}
+
+	return schemas, nil
 }
 
 func (c *ConfigDiff) SetSchema(s *sdcpb.Schema) {
 	c.schema = s
 }
 
-func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte) (*sdcpb.Schema, error) {
-	schemaStore, err := c.loadSchemaStore(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (c *ConfigDiff) SchemaDownload(ctx context.Context, slc *params.SchemaLoadConfig) (*sdcpb.Schema, error) {
 
 	schemaDef := &invv1alpha1.Schema{}
-	if err := yaml.Unmarshal(schemaDefinition, &schemaDef); err != nil {
+	if err := yaml.Unmarshal(slc.GetSchema(), &schemaDef); err != nil {
 		return nil, err
 	}
-
-	// check if the schema already exists
-	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
 
 	sdcpbSchema := &sdcpb.Schema{
 		Name:    "",
@@ -220,11 +242,29 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 		Version: schemaDef.Spec.Version,
 	}
 
+	// open schema store in readonly first
+	schemaStore, err := c.loadSchemaStore(ctx, true, schemaDef.Spec.Provider, schemaDef.Spec.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if the schema already exists
+	schemaExists := schemaStore.HasSchema(store.SchemaKey{Vendor: schemaDef.Spec.Provider, Version: schemaDef.Spec.Version})
+
 	// return in case of existence
 	if schemaExists {
 		log.Infof("Schema - Vendor: %s, Version: %s - Already Exists, Skip Loading", schemaDef.Spec.Provider, schemaDef.Spec.Version)
+		c.SetSchema(sdcpbSchema)
 		return sdcpbSchema, nil
 	}
+
+	// if schema does not exist, open in read/write and continue
+	schemaStore, err = c.loadSchemaStore(ctx, false, schemaDef.Spec.Provider, schemaDef.Spec.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	defer schemaStore.Close()
 
 	schemaLoader, err := loader.NewLoader(
 		c.config.DownloadPath(),
@@ -255,16 +295,15 @@ func (c *ConfigDiff) SchemaDownload(ctx context.Context, schemaDefinition []byte
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Schema - Vendor: %s, Version: %s - Loaded Successful", rsp.Schema.Vendor, rsp.Schema.Version)
 
 	c.SetSchema(sdcpbSchema)
 
-	// TODO: cleanup Schemas Path
-	return nil, err
+	log.Infof("Schema - Vendor: %s, Version: %s - Loaded Successful", rsp.Schema.Vendor, rsp.Schema.Version)
+	return sdcpbSchema, nil
 }
 
 func (c *ConfigDiff) newTreeRoot(ctx context.Context) (*tree.RootEntry, error) {
-	schemaStore, err := c.loadSchemaStore(ctx)
+	schemaStore, err := c.loadSchemaStore(ctx, true, c.schema.GetVendor(), c.schema.GetVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -283,11 +322,11 @@ func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
 	return err
 }
 
-func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool, path *sdcpb.Path) (*sdcpb.BlameTreeElement, error) {
-	cbv := tree.NewBlameConfigVisitor(includeDefaults)
-	if path != nil {
+func (c *ConfigDiff) TreeBlame(ctx context.Context, params *params.ConfigBlameParams) (*sdcpb.BlameTreeElement, error) {
+	cbv := tree.NewBlameConfigVisitor(params.GetIncludeDefaults())
+	if params.GetPath() != nil {
 		// process with a provided path
-		start, err := c.tree.NavigateSdcpbPath(ctx, path.Elem, true)
+		start, err := c.tree.NavigateSdcpbPath(ctx, params.GetPath())
 		if err != nil {
 			return nil, err
 		}
@@ -305,7 +344,7 @@ func (c *ConfigDiff) TreeBlame(ctx context.Context, includeDefaults bool, path *
 	return cbv.GetResult(), nil
 }
 
-func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) error {
+func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) error {
 	var err error
 	var importer treeImporter.ImportConfigAdapter
 
@@ -315,6 +354,8 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 			return err
 		}
 	}
+
+	intent := cl.GetIntent()
 
 	switch intent.GetFormat() {
 	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
@@ -335,19 +376,17 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 	}
 
 	// overwrite running intent with running prio
-	if strings.EqualFold(intent.Name, tree.RunningIntentName) {
-		intent.Prio = tree.RunningValuesPrio
+	if strings.EqualFold(intent.GetName(), tree.RunningIntentName) {
+		intent.SetPrio(tree.RunningValuesPrio)
 	}
 
 	// convert base path to sdcpb.path
-	path, err := utils.ParsePath(intent.GetBasePath())
+	path, err := sdcpb.ParsePath(intent.GetBasePath())
 	if err != nil {
 		return err
 	}
-	// convert sdcpb.path to string slice path
-	strSlicePath := utils.ToStrings(path, false, false)
 
-	err = c.tree.ImportConfig(ctx, strSlicePath, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
+	err = c.tree.ImportConfig(ctx, path, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
 	if err != nil {
 		return err
 	}
@@ -355,71 +394,20 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, intent *types.Intent) err
 	return nil
 }
 
-func (c *ConfigDiff) TreeGetString(ctx context.Context, format types.ConfigFormat, onlyNewOrUpdated bool, path *sdcpb.Path) (string, error) {
-	var err error
-	err = c.tree.FinishInsertionPhase(ctx)
+func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConfig) (params.ConfigShowInterface, error) {
+	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	entry, err := c.tree.NavigateSdcpbPath(ctx, path.GetElem(), true)
-	if err != nil {
-		return "", err
-	}
-
-	result := ""
-	switch format {
-	case types.ConfigFormatXml:
-		x, err := entry.ToXML(onlyNewOrUpdated, true, true, false)
-		if err != nil {
-			return "", err
-		}
-		x.Indent(2)
-		s, err := x.WriteToString()
-		if err != nil {
-			return "", err
-		}
-		result = s
-		return result, nil
-	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
-		var j any
-		if format == types.ConfigFormatJson {
-			j, err = entry.ToJson(onlyNewOrUpdated)
-		} else {
-			j, err = entry.ToJsonIETF(onlyNewOrUpdated)
-		}
-		if err != nil {
-			return "", err
-		}
-
-		byteDoc, err := json.MarshalIndent(j, "", " ")
-		if err != nil {
-			return "", err
-		}
-		result = string(byteDoc)
-		return result, nil
-	case types.ConfigFormatYaml:
-		var j any
-		j, err = entry.ToJson(onlyNewOrUpdated)
-		if err != nil {
-			return "", err
-		}
-		byteDoc, err := yaml.Marshal(j)
-		if err != nil {
-			return "", err
-		}
-		return string(byteDoc), nil
-	case types.ConfigFormatSdc:
-		return "", fmt.Errorf("output in %s format not supported", string(format))
-	}
-	return "", nil
+	return c.tree.NavigateSdcpbPath(ctx, config.GetPath())
 }
 
 func (c *ConfigDiff) GetJson(onlyNewOrUpdated bool) (any, error) {
 	return c.tree.ToJson(onlyNewOrUpdated)
 }
 
-func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStatOverall, error) {
+func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStats, error) {
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -451,12 +439,12 @@ func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) 
 	}
 
 	return c.completePathName(ctx, toCompletePath)
-
 }
+
 func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path, leftover string) []string {
 	attrName, attrVal, _ := strings.Cut(leftover, "=")
 
-	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 	if err != nil {
 		return nil
 	}
@@ -471,7 +459,7 @@ func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path
 	for _, e := range childs {
 		em := e.GetChilds(tree.DescendMethodActiveChilds)
 		lvs := tree.LeafVariantSlice{}
-		lvs = em[attrName].GetHighestPrecedence(lvs, false, true)
+		lvs = em[attrName].GetHighestPrecedence(lvs, false, true, true)
 		elemVal := lvs[0].Update.Value().ToString()
 		if !strings.HasPrefix(elemVal, attrVal) {
 			continue
@@ -494,7 +482,7 @@ func (c *ConfigDiff) completeKeyName(ctx context.Context, toCompletePath *sdcpb.
 	}
 
 	toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key = nil
-	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 	if err != nil {
 		return nil
 	}
@@ -513,7 +501,7 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 	var incompleteLastElem *sdcpb.PathElem
 	if len(toCompletePath.Elem) > 0 {
 		// check if the provied path points to something that exists
-		_, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+		_, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 		if err != nil {
 			// path does not exist, so lets strip last elem
 			if len(toCompletePath.Elem[len(toCompletePath.Elem)-1].Key) > 0 {
@@ -527,7 +515,7 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 		}
 	}
 
-	entry, err = c.tree.NavigateSdcpbPath(ctx, toCompletePath.GetElem(), true)
+	entry, err = c.tree.NavigateSdcpbPath(ctx, toCompletePath)
 	if err != nil {
 		return nil
 	}
@@ -548,10 +536,7 @@ func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb
 	results := make([]string, 0, len(resultEntries))
 	//convert to xpath
 	for _, e := range resultEntries {
-		sdcpbPath, err := e.SdcpbPath()
-		if err != nil {
-			continue
-		}
+		sdcpbPath := e.SdcpbPath()
 		if len(e.GetSchemaKeys()) > 0 {
 			results = append(results, fmt.Sprintf("/%s[%s=", sdcpbPath.ToXPath(false), e.GetSchemaKeys()[0]))
 		}
