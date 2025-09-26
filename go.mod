@@ -18,7 +18,7 @@ require (
 	golang.org/x/term v0.34.0
 	google.golang.org/protobuf v1.36.9
 	k8s.io/apimachinery v0.33.3
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
