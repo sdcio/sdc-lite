@@ -83,11 +83,14 @@ func (cvo *ConfigValidateOutput) ToStruct() (any, error) {
 	result := struct {
 		Errors   []string
 		Warnings []string
-		Stats    *types.ValidationStats
+		Stats    map[string]uint32
 	}{
 		Errors:   cvo.result.ErrorsStr(),
 		Warnings: cvo.result.WarningsStr(),
-		Stats:    cvo.stats,
+		Stats:    map[string]uint32{},
+	}
+	for k, v := range cvo.stats.Counter {
+		result.Stats[k.String()] = *v
 	}
 
 	return result, nil

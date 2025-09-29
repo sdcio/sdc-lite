@@ -84,7 +84,9 @@ func (o *ConfigShowXmlOutput) ToStruct() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return struct{ Xml string }{Xml: xmlString}, nil
+	return struct {
+		Xml string `json:"xml"`
+	}{Xml: xmlString}, nil
 }
 func (o *ConfigShowXmlOutput) WriteToJson(w io.Writer) error {
 	jenc := json.NewEncoder(w)
