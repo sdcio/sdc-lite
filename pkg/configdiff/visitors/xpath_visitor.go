@@ -4,6 +4,9 @@ import (
 	"context"
 
 	"github.com/sdcio/data-server/pkg/tree"
+	"github.com/sdcio/data-server/pkg/utils"
+	"github.com/sdcio/sdc-lite/cmd/interfaces"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
 )
 
 type XPathVisitor struct {
@@ -50,13 +53,16 @@ func (x *XPathVisitor) Visit(ctx context.Context, e tree.Entry) error {
 	return nil
 }
 
-func (x *XPathVisitor) GetResult() string {
-	// sb := &strings.Builder{}
-
-	// for _, r := range x.result {
-	// 	r.GetEntry().SdcpbPath()
-	// }
-	return ""
+func (x *XPathVisitor) GetResult() (interfaces.Output, error) {
+	var err error
+	result := map[string]any{}
+	for _, r := range x.result {
+		result[r.Path().ToXPath(false)], err = utils.GetJsonValue(r.Value(), false)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return output.NewConfigShowXPath(result), nil
 }
 
 var _ tree.EntryVisitor = (*XPathVisitor)(nil)
