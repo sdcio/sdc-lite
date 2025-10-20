@@ -37,7 +37,7 @@ jobs:
         run: go test ./... -v
 
   build-and-release:
-    runs-on: sdcio-action-runners
+    runs-on: ubuntu-latest
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -49,7 +49,14 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
-       
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
