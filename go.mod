@@ -9,7 +9,7 @@ replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 require (
 	github.com/beevik/etree v1.6.0
 	github.com/sdcio/config-server v0.0.54
-	github.com/sdcio/data-server v0.0.64
+	github.com/sdcio/data-server v0.0.66
 	github.com/sdcio/schema-server v0.0.33
 	github.com/sdcio/sdc-protos v0.0.46
 	github.com/sirupsen/logrus v1.9.3
@@ -87,6 +87,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/sdcio/cache v0.0.38 // indirect
+	github.com/sdcio/logger v0.0.2 // indirect
 	github.com/sdcio/yang-parser v0.0.12 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
