@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,21 +19,21 @@ type TargetOutput struct {
 
 var _ interfaces.Output = (*TargetOutput)(nil)
 
-func (t *TargetOutput) ToString() (string, error) {
-	schemaString, err := t.Schema.ToString()
+func (t *TargetOutput) ToString(ctx context.Context) (string, error) {
+	schemaString, err := t.Schema.ToString(ctx)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%s [ %s ]\n", t.TargetName, schemaString), nil
 }
 
-func (t *TargetOutput) ToStringDetails() (string, error) {
+func (t *TargetOutput) ToStringDetails(ctx context.Context) (string, error) {
 	indent := "  "
 	sb := &strings.Builder{}
 	fmt.Fprintf(sb, "Target: %s ( %s )\n", t.TargetName, t.TargetPath)
 	if t.Schema != nil {
 		fmt.Fprintf(sb, "%sSchema:\n", indent)
-		schemaString, err := t.Schema.ToStringDetails()
+		schemaString, err := t.Schema.ToStringDetails(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -40,7 +41,7 @@ func (t *TargetOutput) ToStringDetails() (string, error) {
 	}
 	fmt.Fprintf(sb, "%sIntents:\n", indent)
 	for _, i := range t.Intents {
-		intentString, err := i.ToStringDetails()
+		intentString, err := i.ToStringDetails(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -49,13 +50,13 @@ func (t *TargetOutput) ToStringDetails() (string, error) {
 	return sb.String(), nil
 }
 
-func (t *TargetOutput) WriteToJson(w io.Writer) error {
+func (t *TargetOutput) WriteToJson(_ context.Context, w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(t)
 }
 
-func (t *TargetOutput) ToStruct() (any, error) {
+func (t *TargetOutput) ToStruct(_ context.Context) (any, error) {
 	return t, nil
 }
 
@@ -63,10 +64,10 @@ type TargetOutputSlice []*TargetOutput
 
 var _ interfaces.Output = (TargetOutputSlice)(nil)
 
-func (t TargetOutputSlice) ToString() (string, error) {
+func (t TargetOutputSlice) ToString(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
 	for _, target := range t {
-		targetString, err := target.ToString()
+		targetString, err := target.ToString(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -76,10 +77,10 @@ func (t TargetOutputSlice) ToString() (string, error) {
 	return sb.String(), nil
 }
 
-func (t TargetOutputSlice) ToStringDetails() (string, error) {
+func (t TargetOutputSlice) ToStringDetails(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
 	for _, target := range t {
-		targetString, err := target.ToStringDetails()
+		targetString, err := target.ToStringDetails(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -89,12 +90,12 @@ func (t TargetOutputSlice) ToStringDetails() (string, error) {
 	return sb.String(), nil
 }
 
-func (t TargetOutputSlice) WriteToJson(w io.Writer) error {
+func (t TargetOutputSlice) WriteToJson(_ context.Context, w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(t)
 }
 
-func (t TargetOutputSlice) ToStruct() (any, error) {
+func (t TargetOutputSlice) ToStruct(_ context.Context) (any, error) {
 	return t, nil
 }

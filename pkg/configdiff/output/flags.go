@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,7 +29,7 @@ func NewFlagsOutput(f *dsTypes.UpdateInsertFlags) *FlagsOutput {
 	}
 }
 
-func (f *FlagsOutput) ToString() (string, error) {
+func (f *FlagsOutput) ToString(_ context.Context) (string, error) {
 	sb := &strings.Builder{}
 	fmt.Fprint(sb, "[")
 	if f.New {
@@ -47,16 +48,16 @@ func (f *FlagsOutput) ToString() (string, error) {
 	return sb.String(), nil
 }
 
-func (f *FlagsOutput) ToStringDetails() (string, error) {
-	return f.ToString()
+func (f *FlagsOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return f.ToString(ctx)
 }
 
-func (f *FlagsOutput) WriteToJson(w io.Writer) error {
+func (f *FlagsOutput) WriteToJson(_ context.Context, w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(f)
 }
 
-func (f *FlagsOutput) ToStruct() (any, error) {
+func (f *FlagsOutput) ToStruct(_ context.Context) (any, error) {
 	return f, nil
 }

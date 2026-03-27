@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"strings"
@@ -25,24 +26,24 @@ func (c *ConfigShowJsonIetfOutput) SetOnlyNewOrUpdated(v bool) {
 	c.onlyNewOrUpdated = v
 }
 
-func (o *ConfigShowJsonIetfOutput) ToString() (string, error) {
+func (o *ConfigShowJsonIetfOutput) ToString(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
-	err := o.WriteToJson(sb)
+	err := o.WriteToJson(ctx, sb)
 	if err != nil {
 		return "", err
 	}
 	return sb.String(), nil
 }
-func (o *ConfigShowJsonIetfOutput) ToStringDetails() (string, error) {
-	return o.ToString()
+func (o *ConfigShowJsonIetfOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return o.ToString(ctx)
 }
-func (o *ConfigShowJsonIetfOutput) ToStruct() (any, error) {
-	return o.tree.ToJsonIETF(o.onlyNewOrUpdated)
+func (o *ConfigShowJsonIetfOutput) ToStruct(ctx context.Context) (any, error) {
+	return o.tree.ToJsonIETF(ctx, o.onlyNewOrUpdated)
 }
-func (o *ConfigShowJsonIetfOutput) WriteToJson(w io.Writer) error {
+func (o *ConfigShowJsonIetfOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
 	jenc.SetIndent("", "  ")
-	jVal, err := o.ToStruct()
+	jVal, err := o.ToStruct(ctx)
 	if err != nil {
 		return err
 	}
@@ -50,5 +51,5 @@ func (o *ConfigShowJsonIetfOutput) WriteToJson(w io.Writer) error {
 }
 
 type TreeToJsonIetf interface {
-	ToJsonIETF(onlyNewOrUpdated bool) (any, error)
+	ToJsonIETF(ctx context.Context, onlyNewOrUpdated bool) (any, error)
 }
