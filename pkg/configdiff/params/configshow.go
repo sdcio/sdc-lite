@@ -6,7 +6,6 @@ import (
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
-	"github.com/sdcio/sdc-lite/pkg/configdiff/visitors"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
@@ -67,12 +66,7 @@ func (c *ConfigShowConfig) Run(ctx context.Context, cde Executor) (interfaces.Ou
 	case types.ConfigFormatYaml:
 		return output.NewConfigShowYamlOutput(entry), nil
 	case types.ConfigFormatXPath:
-		xpv := visitors.NewXPathVisitor()
-		err := entry.Walk(ctx, xpv)
-		if err != nil {
-			return nil, err
-		}
-		return xpv.GetResult()
+		return output.NewConfigShowXPathOutput(entry), nil
 	case types.ConfigFormatSdc:
 		fallthrough
 	default:

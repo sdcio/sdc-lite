@@ -40,7 +40,7 @@ var configShowCmd = &cobra.Command{
 			return err
 		}
 
-		err = WriteOutput(out)
+		err = WriteOutput(ctx, out)
 		if err != nil {
 			return err
 		}

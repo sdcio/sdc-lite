@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,8 @@ type ConfigValidateOutput struct {
 	stats  *types.ValidationStats
 }
 
+var _ interfaces.Output = (*ConfigValidateOutput)(nil)
+
 func NewConfigValidateOutput(result types.ValidationResults, stats *types.ValidationStats) *ConfigValidateOutput {
 	return &ConfigValidateOutput{
 		result: result,
@@ -23,7 +26,7 @@ func NewConfigValidateOutput(result types.ValidationResults, stats *types.Valida
 	}
 }
 
-func (cvo *ConfigValidateOutput) ToString() (string, error) {
+func (cvo *ConfigValidateOutput) ToString(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
 
 	if cvo.result.HasErrors() {
@@ -39,10 +42,10 @@ func (cvo *ConfigValidateOutput) ToString() (string, error) {
 	return sb.String(), nil
 }
 
-func (cvo *ConfigValidateOutput) ToStringDetails() (string, error) {
+func (cvo *ConfigValidateOutput) ToStringDetails(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
 
-	toString, err := cvo.ToString()
+	toString, err := cvo.ToString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -68,17 +71,17 @@ func (cvo *ConfigValidateOutput) ToStringDetails() (string, error) {
 	return sb.String(), nil
 }
 
-func (cvo *ConfigValidateOutput) WriteToJson(w io.Writer) error {
+func (cvo *ConfigValidateOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
 
-	jVal, err := cvo.ToStruct()
+	jVal, err := cvo.ToStruct(ctx)
 	if err != nil {
 		return err
 	}
 	return jenc.Encode(jVal)
 }
 
-func (cvo *ConfigValidateOutput) ToStruct() (any, error) {
+func (cvo *ConfigValidateOutput) ToStruct(ctx context.Context) (any, error) {
 
 	result := struct {
 		Errors   []string
@@ -95,5 +98,3 @@ func (cvo *ConfigValidateOutput) ToStruct() (any, error) {
 
 	return result, nil
 }
-
-var _ interfaces.Output = (*ConfigValidateOutput)(nil)

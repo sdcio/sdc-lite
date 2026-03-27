@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"io"
 	"strings"
 
@@ -25,24 +26,24 @@ func (c *ConfigShowYamlOutput) SetOnlyNewOrUpdated(v bool) {
 	c.onlyNewOrUpdated = v
 }
 
-func (o *ConfigShowYamlOutput) ToString() (string, error) {
+func (o *ConfigShowYamlOutput) ToString(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
-	err := o.WriteToJson(sb)
+	err := o.WriteToJson(ctx, sb)
 	if err != nil {
 		return "", err
 	}
 	return sb.String(), nil
 }
-func (o *ConfigShowYamlOutput) ToStringDetails() (string, error) {
-	return o.ToString()
+func (o *ConfigShowYamlOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return o.ToString(ctx)
 }
-func (o *ConfigShowYamlOutput) ToStruct() (any, error) {
-	return o.tree.ToJson(o.onlyNewOrUpdated)
+func (o *ConfigShowYamlOutput) ToStruct(ctx context.Context) (any, error) {
+	return o.tree.ToJson(ctx, o.onlyNewOrUpdated)
 }
-func (o *ConfigShowYamlOutput) WriteToJson(w io.Writer) error {
+func (o *ConfigShowYamlOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	yEnc := yaml.NewEncoder(w)
 
-	jVal, err := o.ToStruct()
+	jVal, err := o.ToStruct(ctx)
 	if err != nil {
 		return err
 	}

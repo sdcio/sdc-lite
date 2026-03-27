@@ -37,7 +37,7 @@ var SchemaListCmd = &cobra.Command{
 
 		outputSchemas := output.NewSchemaOutputList(schemas)
 
-		err = WriteOutput(outputSchemas)
+		err = WriteOutput(ctx, outputSchemas)
 		if err != nil {
 			return err
 		}

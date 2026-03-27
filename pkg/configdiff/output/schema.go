@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,24 +21,23 @@ func NewSchemaOutput(s *sdcpb.Schema) *SchemaOutput {
 		Vendor:  s.GetVendor(),
 		Version: s.GetVersion(),
 	}
-
 }
 
-func (s *SchemaOutput) WriteToJson(w io.Writer) error {
+func (s *SchemaOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(s)
 }
 
-func (s *SchemaOutput) ToString() (string, error) {
-	return fmt.Sprintf("Vendor: %s, Version: %s", s.Vendor, s.Version), nil
+func (s *SchemaOutput) ToString(_ context.Context) (string, error) {
+	return fmt.Sprintf("Vendor: %s, Version: %s\n", s.Vendor, s.Version), nil
 }
 
-func (s *SchemaOutput) ToStringDetails() (string, error) {
-	return s.ToString()
+func (s *SchemaOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return s.ToString(ctx)
 }
 
-func (s *SchemaOutput) ToStruct() (any, error) {
+func (s *SchemaOutput) ToStruct(_ context.Context) (any, error) {
 	return s, nil
 }
 
@@ -53,10 +53,10 @@ func NewSchemaOutputList(ss []*sdcpb.Schema) SchemaOutputSlice {
 	return result
 }
 
-func (s SchemaOutputSlice) ToString() (string, error) {
+func (s SchemaOutputSlice) ToString(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
 	for _, schema := range s {
-		schemaString, err := schema.ToString()
+		schemaString, err := schema.ToString(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -65,16 +65,16 @@ func (s SchemaOutputSlice) ToString() (string, error) {
 	return sb.String(), nil
 }
 
-func (s SchemaOutputSlice) ToStringDetails() (string, error) {
-	return s.ToString()
+func (s SchemaOutputSlice) ToStringDetails(ctx context.Context) (string, error) {
+	return s.ToString(ctx)
 }
 
-func (s SchemaOutputSlice) WriteToJson(w io.Writer) error {
+func (s SchemaOutputSlice) WriteToJson(ctx context.Context, w io.Writer) error {
 	jEnc := json.NewEncoder(w)
 	jEnc.SetIndent("", "  ")
 	return jEnc.Encode(s)
 }
 
-func (s SchemaOutputSlice) ToStruct() (any, error) {
+func (s SchemaOutputSlice) ToStruct(_ context.Context) (any, error) {
 	return s, nil
 }

@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
@@ -17,22 +18,22 @@ func NewErrorOutput(err error) *ErrorOutput {
 	return &ErrorOutput{Error: err}
 }
 
-func (c *ErrorOutput) ToString() (string, error) {
+func (c *ErrorOutput) ToString(_ context.Context) (string, error) {
 	return c.Error.Error(), nil
 }
 
-func (c *ErrorOutput) ToStringDetails() (string, error) {
+func (c *ErrorOutput) ToStringDetails(_ context.Context) (string, error) {
 	return c.Error.Error(), nil
 }
 
-func (c *ErrorOutput) ToStruct() (any, error) {
+func (c *ErrorOutput) ToStruct(_ context.Context) (any, error) {
 	return c, nil
 }
 
-func (c *ErrorOutput) WriteToJson(w io.Writer) error {
+func (c *ErrorOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
 
-	jVal, err := c.ToStruct()
+	jVal, err := c.ToStruct(ctx)
 	if err != nil {
 		return err
 	}
