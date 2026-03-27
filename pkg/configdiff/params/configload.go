@@ -2,6 +2,8 @@ package params
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/output"
@@ -25,10 +27,15 @@ func (c *ConfigLoad) String() string {
 }
 
 func (c *ConfigLoad) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {
+
+	start := time.Now()
 	err := cde.TreeLoadData(ctx, c)
 	if err != nil {
 		return nil, err
 	}
+	elapsed := time.Since(start)
+	fmt.Println("Execution time:", elapsed)
+
 	result := output.NewNullOutput()
 	return result, nil
 }

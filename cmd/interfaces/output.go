@@ -1,10 +1,13 @@
 package interfaces
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 type Output interface {
-	ToString() (string, error)
-	ToStringDetails() (string, error)
-	ToStruct() (any, error)
-	WriteToJson(w io.Writer) error
+	ToString(ctx context.Context) (string, error)
+	ToStringDetails(ctx context.Context) (string, error)
+	ToStruct(ctx context.Context) (any, error)
+	WriteToJson(ctx context.Context, w io.Writer) error
 }

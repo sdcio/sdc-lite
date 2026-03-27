@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/beevik/etree"
-	"github.com/sdcio/data-server/pkg/tree"
+	"github.com/sdcio/data-server/pkg/tree/api"
 	"github.com/sdcio/data-server/pkg/tree/types"
+	treetypes "github.com/sdcio/data-server/pkg/tree/types"
 
 	sdcpb "github.com/sdcio/sdc-protos/sdcpb"
 )
@@ -21,16 +22,15 @@ type Executor interface {
 }
 
 type ConfigShowInterface interface {
-	Walk(ctx context.Context, v tree.EntryVisitor) error
 	// ToJson returns the Tree contained structure as JSON
 	// use e.g. json.MarshalIndent() on the returned struct
-	ToJson(onlyNewOrUpdated bool) (any, error)
+	ToJson(ctx context.Context, onlyNewOrUpdated bool) (any, error)
 	// ToJsonIETF returns the Tree contained structure as JSON_IETF
 	// use e.g. json.MarshalIndent() on the returned struct
-	ToJsonIETF(onlyNewOrUpdated bool) (any, error)
-	ToXML(onlyNewOrUpdated bool, honorNamespace bool, operationWithNamespace bool, useOperationRemove bool) (*etree.Document, error)
+	ToJsonIETF(ctx context.Context, onlyNewOrUpdated bool) (any, error)
+	ToXML(ctx context.Context, onlyNewOrUpdated bool, honorNamespace bool, operationWithNamespace bool, useOperationRemove bool) (*etree.Document, error)
 	// ToProto basically
-	GetHighestPrecedence(result tree.LeafVariantSlice, onlyNewOrUpdated bool, includeDefaults bool, includeExplicitDelete bool) tree.LeafVariantSlice
+	GetHighestPrecedence(ctx context.Context, onlyNewOrUpdated bool, includeDefaults bool, includeExplicitDelete bool) api.LeafVariantSlice
 	// deletes for proto and json(_ietf)
-	GetDeletes(deletes []types.DeleteEntry, aggregatePaths bool) ([]types.DeleteEntry, error)
+	GetDeletes(ctx context.Context, aggregatePaths bool) (treetypes.DeleteEntriesList, error)
 }

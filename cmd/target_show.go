@@ -35,7 +35,7 @@ var targetShowCmd = &cobra.Command{
 
 		// enable detailed output
 		detailed = true
-		err = WriteOutput(target.Export())
+		err = WriteOutput(ctx, target.Export())
 		if err != nil {
 			return err
 		}
