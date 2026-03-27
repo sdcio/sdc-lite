@@ -365,7 +365,14 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 			return err
 		}
 		importer = treejson.NewJsonTreeImporter(j)
-
+	case types.ConfigFormatYaml:
+		var y any
+		err = yaml.Unmarshal(intent.GetData(), &y)
+		if err != nil {
+			return err
+		}
+		// we use json importer since we're based basically on map[string]any
+		importer = treejson.NewJsonTreeImporter(y)
 	case types.ConfigFormatXml:
 		xmlDoc := etree.NewDocument()
 		err := xmlDoc.ReadFromBytes(intent.GetData())
@@ -373,6 +380,8 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 			return err
 		}
 		importer = treexml.NewXmlTreeImporter(&xmlDoc.Element)
+	default:
+		return fmt.Errorf("import of format %s not supported yet", intent.GetFormat().String())
 	}
 
 	// overwrite running intent with running prio

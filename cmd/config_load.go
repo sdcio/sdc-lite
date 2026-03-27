@@ -54,14 +54,6 @@ var configLoadCmd = &cobra.Command{
 		}
 
 		switch configFormat {
-		case types.ConfigFormatJson, types.ConfigFormatJsonIetf, types.ConfigFormatXml:
-			// TODO:
-			// lc.SetFlags()
-			rawParam.SetName(intentName).SetPrio(priority)
-			// if data is comming from stdin, store it in data
-			if strings.TrimSpace(configurationFile) == "-" {
-				rawParam.SetData(configByte)
-			}
 		case types.ConfigFormatSdc:
 
 			sdcC, err := LoadSDCConfigCR(configByte)
@@ -82,6 +74,14 @@ var configLoadCmd = &cobra.Command{
 			rawParam, err = ConvertSDCConfigToInternalIntent(ctx, cdp.ConfigDiff, sdcC)
 			if err != nil {
 				return err
+			}
+		default:
+			// TODO:
+			// lc.SetFlags()
+			rawParam.SetName(intentName).SetPrio(priority)
+			// if data is comming from stdin, store it in data
+			if strings.TrimSpace(configurationFile) == "-" {
+				rawParam.SetData(configByte)
 			}
 		}
 
