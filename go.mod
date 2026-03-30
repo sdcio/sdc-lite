@@ -10,7 +10,7 @@ require (
 	github.com/sdcio/data-server v0.0.64
 	github.com/sdcio/schema-server v0.0.33
 	github.com/sdcio/sdc-protos v0.0.46
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/term v0.41.0
