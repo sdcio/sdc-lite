@@ -50,13 +50,14 @@ var pipelineRunCmd = &cobra.Command{
 					// error received
 					jr = rpc.NewJsonRpcResult(out.GetId(), out.GetError(), nil)
 				}
-				data, err := jr.JsonMarshall(outFormat)
+				data, err := jr.JsonMarshall(ctx, outFormat)
 				if err != nil {
 					return err
 				}
 				fmt.Println(string(data))
 			}
 		}
+
 	},
 }
 

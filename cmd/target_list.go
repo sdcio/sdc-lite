@@ -41,7 +41,7 @@ var targetListCmd = &cobra.Command{
 			return nil
 		}
 
-		err = WriteOutput(targets.Export())
+		err = WriteOutput(ctx, targets.Export())
 		if err != nil {
 			return err
 		}

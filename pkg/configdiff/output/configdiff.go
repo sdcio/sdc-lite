@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
@@ -19,18 +20,18 @@ func NewConfigDiffOutput(s string) *ConfigDiffOutput {
 	}
 }
 
-func (o *ConfigDiffOutput) ToString() (string, error) {
+func (o *ConfigDiffOutput) ToString(_ context.Context) (string, error) {
 	return o.diff, nil
 }
-func (o *ConfigDiffOutput) ToStringDetails() (string, error) {
-	return o.ToString()
+func (o *ConfigDiffOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return o.ToString(ctx)
 }
-func (o *ConfigDiffOutput) ToStruct() (any, error) {
+func (o *ConfigDiffOutput) ToStruct(_ context.Context) (any, error) {
 	return struct{ Diff string }{Diff: o.diff}, nil
 }
-func (o *ConfigDiffOutput) WriteToJson(w io.Writer) error {
+func (o *ConfigDiffOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
-	jVal, err := o.ToStruct()
+	jVal, err := o.ToStruct(ctx)
 	if err != nil {
 		return err
 	}

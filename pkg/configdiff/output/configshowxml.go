@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
@@ -44,8 +45,8 @@ func (c *ConfigShowXmlOutput) SetUseOperationRemove(v bool) {
 	c.useOperationRemove = v
 }
 
-func (o *ConfigShowXmlOutput) ToString() (string, error) {
-	xmlDoc, err := o.tree.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
+func (o *ConfigShowXmlOutput) ToString(ctx context.Context) (string, error) {
+	xmlDoc, err := o.tree.ToXML(ctx, o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
 	if err != nil {
 		return "", err
 	}
@@ -54,8 +55,8 @@ func (o *ConfigShowXmlOutput) ToString() (string, error) {
 
 	return xmlDoc.WriteToString()
 }
-func (o *ConfigShowXmlOutput) ToStringDetails() (string, error) {
-	return o.ToString()
+func (o *ConfigShowXmlOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return o.ToString(ctx)
 }
 
 func wrapInConfig(xmlDoc *etree.Document) {
@@ -74,8 +75,8 @@ func wrapInConfig(xmlDoc *etree.Document) {
 	xmlDoc.Indent(2)
 }
 
-func (o *ConfigShowXmlOutput) ToStruct() (any, error) {
-	xmlDoc, err := o.tree.ToXML(o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
+func (o *ConfigShowXmlOutput) ToStruct(ctx context.Context) (any, error) {
+	xmlDoc, err := o.tree.ToXML(ctx, o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +89,9 @@ func (o *ConfigShowXmlOutput) ToStruct() (any, error) {
 		Xml string `json:"xml"`
 	}{Xml: xmlString}, nil
 }
-func (o *ConfigShowXmlOutput) WriteToJson(w io.Writer) error {
+func (o *ConfigShowXmlOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
-	jVal, err := o.ToStruct()
+	jVal, err := o.ToStruct(ctx)
 	if err != nil {
 		return err
 	}
@@ -98,5 +99,5 @@ func (o *ConfigShowXmlOutput) WriteToJson(w io.Writer) error {
 }
 
 type TreeToXML interface {
-	ToXML(onlyNewOrUpdated bool, honorNamespace bool, operationWithNamespace bool, useOperationRemove bool) (*etree.Document, error)
+	ToXML(ctx context.Context, onlyNewOrUpdated bool, honorNamespace bool, operationWithNamespace bool, useOperationRemove bool) (*etree.Document, error)
 }

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -49,7 +50,7 @@ func NewJsonRpcResult(id int, err error, result interfaces.Output) *JsonRpcResul
 	}
 }
 
-func (j *JsonRpcResult) JsonMarshall(outFormat OutFormat) ([]byte, error) {
+func (j *JsonRpcResult) JsonMarshall(ctx context.Context, outFormat OutFormat) ([]byte, error) {
 	var err error
 	result := struct {
 		Id      int    `json:"id"`
@@ -68,17 +69,17 @@ func (j *JsonRpcResult) JsonMarshall(outFormat OutFormat) ([]byte, error) {
 	if j.result != nil {
 		switch outFormat {
 		case OutFormatJson:
-			result.Result, err = j.result.ToStruct()
+			result.Result, err = j.result.ToStruct(ctx)
 			if err != nil {
 				return nil, err
 			}
 		case OutFormatString:
-			result.Result, err = j.result.ToString()
+			result.Result, err = j.result.ToString(ctx)
 			if err != nil {
 				return nil, err
 			}
 		case OutFormatDetailed:
-			result.Result, err = j.result.ToStringDetails()
+			result.Result, err = j.result.ToStringDetails(ctx)
 			if err != nil {
 				return nil, err
 			}

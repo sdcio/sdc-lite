@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -21,15 +22,15 @@ func NewBlameResultOutput(e *sdcpb.BlameTreeElement) *BlameResultOutput {
 	}
 }
 
-func (b *BlameResultOutput) ToString() (string, error) {
+func (b *BlameResultOutput) ToString(_ context.Context) (string, error) {
 	return fmt.Sprintln(b.BlameTreeElement.ToString()), nil
 }
 
-func (b *BlameResultOutput) ToStringDetails() (string, error) {
-	return b.ToString()
+func (b *BlameResultOutput) ToStringDetails(ctx context.Context) (string, error) {
+	return b.ToString(ctx)
 }
 
-func (b *BlameResultOutput) WriteToJson(w io.Writer) error {
+func (b *BlameResultOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	marshaler := protojson.MarshalOptions{
 		Multiline: true,
 		Indent:    "  ",
@@ -45,6 +46,6 @@ func (b *BlameResultOutput) WriteToJson(w io.Writer) error {
 	return nil
 }
 
-func (b *BlameResultOutput) ToStruct() (any, error) {
+func (b *BlameResultOutput) ToStruct(_ context.Context) (any, error) {
 	return b, nil
 }

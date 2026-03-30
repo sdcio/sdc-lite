@@ -13,22 +13,22 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 )
 
-func WriteOutput(o interfaces.Output) (err error) {
+func WriteOutput(ctx context.Context, o interfaces.Output) (err error) {
 	if o == nil {
 		return nil
 	}
 	switch {
 	case jsonOutput:
-		err = o.WriteToJson(os.Stdout)
+		err = o.WriteToJson(ctx, os.Stdout)
 		return err
 	case detailed:
-		output, err := o.ToStringDetails()
+		output, err := o.ToStringDetails(ctx)
 		if err != nil {
 			return err
 		}
 		fmt.Print(output)
 	default:
-		output, err := o.ToString()
+		output, err := o.ToString(ctx)
 		if err != nil {
 			return err
 		}

@@ -95,7 +95,7 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		err = WriteOutput(out)
+		err = WriteOutput(ctx, out)
 		if err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func ConvertSDCConfigToInternalIntent(ctx context.Context, cd *configdiff.Config
 		}
 	}
 
-	jsonConf, err := cdNew.GetJson(false)
+	jsonConf, err := cdNew.GetJson(ctx, false)
 	if err != nil {
 		return nil, err
 	}
