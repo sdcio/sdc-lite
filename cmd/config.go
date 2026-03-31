@@ -1,10 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	log "github.com/sirupsen/logrus"
@@ -64,16 +60,16 @@ func AddPathPersistentFlag(c *cobra.Command) error {
 			return nil, cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
 		}
 
-		f, err := os.OpenFile("/tmp/trace", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			panic(err)
-		}
-		defer f.Close()
-		fmt.Fprintf(f, "toComplete: %s\n", toComplete)
+		// f, err := os.OpenFile("/tmp/trace", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// defer f.Close()
+		// fmt.Fprintf(f, "toComplete: %s\n", toComplete)
 
 		results := cdp.GetPathCompletions(cmd.Context(), toComplete)
 
-		fmt.Fprintf(f, "result: %s\n", strings.Join(results, ", "))
+		// fmt.Fprintf(f, "result: %s\n", strings.Join(results, ", "))
 		return results, cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
 	})
 	return err

@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 
 	"github.com/beevik/etree"
@@ -443,132 +442,7 @@ func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResu
 }
 
 func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) []string {
-
-	cleanToComplete := toComplete
-	keyPart := ""
-	doKeyAction := false
-	if strings.LastIndex(toComplete, "[") > strings.LastIndex(toComplete, "]") {
-		cleanToComplete = toComplete[:strings.LastIndex(toComplete, "[")]
-		keyPart = toComplete[strings.LastIndex(toComplete, "[")+1:]
-		doKeyAction = true
-	}
-
-	toCompletePath, err := sdcpb.ParsePath(cleanToComplete)
-	if err != nil {
-		return nil
-	}
-	if doKeyAction {
-		if strings.Contains(keyPart, "=") {
-			return c.completeKey(ctx, toCompletePath, keyPart)
-		}
-		return c.completeKeyName(ctx, toCompletePath, keyPart)
-	}
-
-	return c.completePathName(ctx, toCompletePath)
-}
-
-func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path, leftover string) []string {
-	attrName, attrVal, _ := strings.Cut(leftover, "=")
-
-	entry, err := ops.NavigateSdcpbPath(ctx, c.tree.Entry, toCompletePath)
-	if err != nil {
-		return nil
-	}
-
-	lastLevelKeys := toCompletePath.Elem[len(toCompletePath.Elem)-1].Key
-
-	childs, err := ops.FilterChilds(entry, lastLevelKeys)
-	if err != nil {
-		return nil
-	}
-	result := []string{}
-	for _, e := range childs {
-		em := e.GetChilds(treetypes.DescendMethodActiveChilds)
-		lvs := ops.GetHighestPrecedence(em[attrName], false, true, true)
-		elemVal := lvs[0].Update.Value().ToString()
-		if !strings.HasPrefix(elemVal, attrVal) {
-			continue
-		}
-		newPath := toCompletePath.DeepCopy()
-		if newPath.Elem[len(newPath.Elem)-1].Key == nil {
-			newPath.Elem[len(newPath.Elem)-1].Key = map[string]string{}
-		}
-		newPath.Elem[len(newPath.Elem)-1].Key[attrName] = elemVal
-		pstring := newPath.ToXPath(false)
-		result = append(result, pstring)
-	}
-	return result
-}
-func (c *ConfigDiff) completeKeyName(ctx context.Context, toCompletePath *sdcpb.Path, leftOver string) []string {
-	toCompletePathCopy := toCompletePath.DeepCopy()
-	existingKeys := map[string]struct{}{}
-	for k := range toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key {
-		existingKeys[k] = struct{}{}
-	}
-
-	toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key = nil
-	entry, err := ops.NavigateSdcpbPath(ctx, c.tree.Entry, toCompletePath)
-	if err != nil {
-		return nil
-	}
-	result := []string{}
-	for _, k := range ops.GetSchemaKeys(entry) {
-		_, keyexists := existingKeys[k]
-		if strings.HasPrefix(k, leftOver) && !keyexists {
-			result = append(result, fmt.Sprintf("%s[%s=", toCompletePath.ToXPath(false), k))
-		}
-	}
-	return result
-}
-func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb.Path) []string {
-	var err error
-	var entry api.Entry
-	var incompleteLastElem *sdcpb.PathElem
-	if len(toCompletePath.Elem) > 0 {
-		// check if the provied path points to something that exists
-		_, err := ops.NavigateSdcpbPath(ctx, c.tree.Entry, toCompletePath)
-		if err != nil {
-			// path does not exist, so lets strip last elem
-			if len(toCompletePath.Elem[len(toCompletePath.Elem)-1].Key) > 0 {
-				// processing keys
-			} else {
-				// processing normal path elements
-				// remove the last element since it is probably just partial
-				incompleteLastElem = toCompletePath.Elem[len(toCompletePath.Elem)-1]
-				toCompletePath.Elem = toCompletePath.Elem[:len(toCompletePath.Elem)-1]
-			}
-		}
-	}
-
-	entry, err = ops.NavigateSdcpbPath(ctx, c.tree.Entry, toCompletePath)
-	if err != nil {
-		return nil
-	}
-	childs := entry.GetChilds(treetypes.DescendMethodActiveChilds)
-
-	var resultEntries []api.Entry
-
-	doAdd := true
-	for k, v := range childs {
-		if incompleteLastElem != nil {
-			doAdd = strings.HasPrefix(k, incompleteLastElem.Name)
-		}
-		if doAdd {
-			resultEntries = append(resultEntries, v)
-		}
-	}
-
-	results := make([]string, 0, len(resultEntries))
-	//convert to xpath
-	for _, e := range resultEntries {
-		sdcpbPath := e.SdcpbPath()
-		if len(ops.GetSchemaKeys(e)) > 0 {
-			results = append(results, fmt.Sprintf("/%s[%s=", sdcpbPath.ToXPath(false), ops.GetSchemaKeys(e)[0]))
-		}
-		results = append(results, fmt.Sprintf("/%s", sdcpbPath.ToXPath(false)))
-	}
-	sort.Strings(results)
-	return results
+	return ops.GetPathCompletions(ctx, c.tree.Entry, toComplete)
 }
 
 // configShowEntryAdapter is an adapter that allows to use an api.Entry as a ConfigShowInterface
