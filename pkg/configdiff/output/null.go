@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
@@ -16,22 +17,22 @@ func NewNullOutput() *NullOutput {
 	return &NullOutput{}
 }
 
-func (c *NullOutput) ToString() (string, error) {
+func (c *NullOutput) ToString(_ context.Context) (string, error) {
 	return "", nil
 }
 
-func (c *NullOutput) ToStringDetails() (string, error) {
+func (c *NullOutput) ToStringDetails(_ context.Context) (string, error) {
 	return "", nil
 }
 
-func (c *NullOutput) ToStruct() (any, error) {
+func (c *NullOutput) ToStruct(_ context.Context) (any, error) {
 	return c, nil
 }
 
-func (c *NullOutput) WriteToJson(w io.Writer) error {
+func (c *NullOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
 
-	jVal, err := c.ToStruct()
+	jVal, err := c.ToStruct(ctx)
 	if err != nil {
 		return err
 	}

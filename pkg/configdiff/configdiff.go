@@ -6,16 +6,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"runtime"
 	"strings"
 
 	"github.com/beevik/etree"
 	invv1alpha1 "github.com/sdcio/config-server/apis/inv/v1alpha1"
 	loader "github.com/sdcio/config-server/pkg/schema"
+	"github.com/sdcio/data-server/pkg/pool"
 	"github.com/sdcio/data-server/pkg/tree"
+	"github.com/sdcio/data-server/pkg/tree/api"
+	"github.com/sdcio/data-server/pkg/tree/consts"
 	treeImporter "github.com/sdcio/data-server/pkg/tree/importer"
 	treejson "github.com/sdcio/data-server/pkg/tree/importer/json"
 	treexml "github.com/sdcio/data-server/pkg/tree/importer/xml"
+	"github.com/sdcio/data-server/pkg/tree/ops"
+	"github.com/sdcio/data-server/pkg/tree/ops/validation"
+	"github.com/sdcio/data-server/pkg/tree/processors"
 	treetypes "github.com/sdcio/data-server/pkg/tree/types"
 	schemaSrvConf "github.com/sdcio/schema-server/pkg/config"
 	"github.com/sdcio/schema-server/pkg/store"
@@ -38,6 +44,7 @@ type ConfigDiff struct {
 	tree        *tree.RootEntry
 	schema      *sdcpb.Schema
 	schemaStore store.Store
+	sharedPool  *pool.SharedTaskPool
 }
 
 var _ params.Executor = (*ConfigDiff)(nil)
@@ -51,8 +58,10 @@ func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
 	log.SetOutput(os.Stderr)
 
 	cd := &ConfigDiff{
-		config: c,
+		config:     c,
+		sharedPool: pool.NewSharedTaskPool(ctx, runtime.GOMAXPROCS(0)),
 	}
+
 	return cd, nil
 }
 
@@ -73,12 +82,12 @@ func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, er
 		return nil, err
 	}
 	// navigate to path
-	entry, err := c.tree.NavigateSdcpbPath(ctx, path)
+	entry, err := ops.NavigateSdcpbPath(ctx, c.tree.Entry, path)
 	if err != nil {
 		return nil, err
 	}
 	// retrive running Tree json
-	jTree, err := entry.ToJson(false)
+	jTree, err := ops.ToJson(ctx, entry, false)
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +96,8 @@ func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, er
 }
 
 func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any, error) {
-	lvs := tree.LeafVariantSlice{}
 	// export running intents
-	lvs = c.tree.GetByOwner("running", lvs)
+	lvs := ops.LeafsOfOwner(c.tree.Entry, consts.RunningIntentName)
 
 	// create a new Tree for running
 	runningTree, err := c.newTreeRoot(ctx)
@@ -97,7 +105,7 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 		return nil, err
 	}
 	// add running to the new running tree
-	err = runningTree.AddUpdatesRecursive(ctx, lvs.ToUpdateSlice(), treetypes.NewUpdateInsertFlags())
+	err = runningTree.AddUpdatesRecursive(ctx, lvs.ToPathAndUpdateSlice(), treetypes.NewUpdateInsertFlags())
 	if err != nil {
 		return nil, err
 	}
@@ -107,13 +115,13 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 		return nil, err
 	}
 
-	entry, err := runningTree.NavigateSdcpbPath(ctx, path)
+	entry, err := ops.NavigateSdcpbPath(ctx, runningTree.Entry, path)
 	if err != nil {
 		return nil, err
 	}
 
 	// retrive running Tree json
-	jrunTree, err := entry.ToJson(false)
+	jrunTree, err := ops.ToJson(ctx, entry, false)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +130,10 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 }
 
 func (c *ConfigDiff) GetDiff(ctx context.Context, dc *params.DiffConfig) (string, error) {
+	//TODO: currently we only support json diff
+	if dc.GetFormat() != types.ConfigFormatJson {
+		return "", fmt.Errorf("diff only supported for json format currently")
+	}
 
 	runningJson, err := c.GetRunningJson(ctx, dc.GetPath())
 	if err != nil {
@@ -309,7 +321,7 @@ func (c *ConfigDiff) newTreeRoot(ctx context.Context) (*tree.RootEntry, error) {
 	}
 
 	scb := schemaclient.NewMemSchemaClientBound(schemaStore, c.schema)
-	tc := tree.NewTreeContext(scb, "")
+	tc := tree.NewTreeContext(scb, c.sharedPool)
 	t, err := tree.NewTreeRoot(ctx, tc)
 	if err != nil {
 		return nil, err
@@ -323,25 +335,23 @@ func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
 }
 
 func (c *ConfigDiff) TreeBlame(ctx context.Context, params *params.ConfigBlameParams) (*sdcpb.BlameTreeElement, error) {
-	cbv := tree.NewBlameConfigVisitor(params.GetIncludeDefaults())
+	var elem = c.tree.Entry
+	var err error
+	// if a path is provided, navigate to the path first
 	if params.GetPath() != nil {
-		// process with a provided path
-		start, err := c.tree.NavigateSdcpbPath(ctx, params.GetPath())
+		elem, err = ops.NavigateSdcpbPath(ctx, c.tree.Entry, params.GetPath())
 		if err != nil {
 			return nil, err
 		}
-		err = start.Walk(ctx, cbv)
-		if err != nil {
-			return nil, err
-		}
-		return cbv.GetResult(), nil
 	}
-	// if no path is provided
-	err := c.tree.Walk(ctx, cbv)
+	// create config for blame processor
+	blameProcessor := processors.NewBlameConfigProcessor(&processors.BlameConfigProcessorParams{IncludeDefaults: params.GetIncludeDefaults()})
+	blametree, err := blameProcessor.Run(ctx, elem, c.sharedPool)
 	if err != nil {
 		return nil, err
 	}
-	return cbv.GetResult(), nil
+
+	return blametree, nil
 }
 
 func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) error {
@@ -364,7 +374,7 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 		if err != nil {
 			return err
 		}
-		importer = treejson.NewJsonTreeImporter(j)
+		importer = treejson.NewJsonTreeImporter(j, intent.GetName(), intent.GetPrio(), false)
 	case types.ConfigFormatYaml:
 		var y any
 		err = yaml.Unmarshal(intent.GetData(), &y)
@@ -372,21 +382,21 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 			return err
 		}
 		// we use json importer since we're based basically on map[string]any
-		importer = treejson.NewJsonTreeImporter(y)
+		importer = treejson.NewJsonTreeImporter(y, intent.GetName(), intent.GetPrio(), false)
 	case types.ConfigFormatXml:
 		xmlDoc := etree.NewDocument()
 		err := xmlDoc.ReadFromBytes(intent.GetData())
 		if err != nil {
 			return err
 		}
-		importer = treexml.NewXmlTreeImporter(&xmlDoc.Element)
+		importer = treexml.NewXmlTreeImporter(&xmlDoc.Element, intent.GetName(), intent.GetPrio(), false)
 	default:
 		return fmt.Errorf("import of format %s not supported yet", intent.GetFormat().String())
 	}
 
 	// overwrite running intent with running prio
-	if strings.EqualFold(intent.GetName(), tree.RunningIntentName) {
-		intent.SetPrio(tree.RunningValuesPrio)
+	if strings.EqualFold(intent.GetName(), consts.RunningIntentName) {
+		intent.SetPrio(consts.RunningValuesPrio)
 	}
 
 	// convert base path to sdcpb.path
@@ -395,7 +405,7 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 		return err
 	}
 
-	err = c.tree.ImportConfig(ctx, path, importer, intent.GetName(), intent.GetPrio(), intent.GetFlag())
+	_, err = c.tree.ImportConfig(ctx, path, importer, cl.GetIntent().Flag, c.sharedPool)
 	if err != nil {
 		return err
 	}
@@ -409,11 +419,16 @@ func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConf
 		return nil, err
 	}
 
-	return c.tree.NavigateSdcpbPath(ctx, config.GetPath())
+	entry, err := ops.NavigateSdcpbPath(ctx, c.tree.Entry, config.GetPath())
+	if err != nil {
+		return nil, err
+	}
+
+	return newConfigShowEntryAdapter(entry), nil
 }
 
-func (c *ConfigDiff) GetJson(onlyNewOrUpdated bool) (any, error) {
-	return c.tree.ToJson(onlyNewOrUpdated)
+func (c *ConfigDiff) GetJson(ctx context.Context, onlyNewOrUpdated bool) (any, error) {
+	return ops.ToJson(ctx, c.tree.Entry, onlyNewOrUpdated)
 }
 
 func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStats, error) {
@@ -421,136 +436,43 @@ func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResu
 	if err != nil {
 		return nil, nil, err
 	}
-	valResult, valStat := c.tree.Validate(ctx, c.config.Validation())
+	// run validation processor on the tree
+	valResult, valStat := validation.Validate(ctx, c.tree.Entry, c.config.Validation(), c.sharedPool)
 	return valResult, valStat, nil
 }
 
 func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) []string {
-
-	cleanToComplete := toComplete
-	keyPart := ""
-	doKeyAction := false
-	if strings.LastIndex(toComplete, "[") > strings.LastIndex(toComplete, "]") {
-		cleanToComplete = toComplete[:strings.LastIndex(toComplete, "[")]
-		keyPart = toComplete[strings.LastIndex(toComplete, "[")+1:]
-		doKeyAction = true
-	}
-
-	toCompletePath, err := sdcpb.ParsePath(cleanToComplete)
-	if err != nil {
-		return nil
-	}
-	if doKeyAction {
-		if strings.Contains(keyPart, "=") {
-			return c.completeKey(ctx, toCompletePath, keyPart)
-		}
-		return c.completeKeyName(ctx, toCompletePath, keyPart)
-	}
-
-	return c.completePathName(ctx, toCompletePath)
+	return ops.GetPathCompletions(ctx, c.tree.Entry, toComplete)
 }
 
-func (c *ConfigDiff) completeKey(ctx context.Context, toCompletePath *sdcpb.Path, leftover string) []string {
-	attrName, attrVal, _ := strings.Cut(leftover, "=")
-
-	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
-	if err != nil {
-		return nil
-	}
-
-	lastLevelKeys := toCompletePath.Elem[len(toCompletePath.Elem)-1].Key
-
-	childs, err := entry.FilterChilds(lastLevelKeys)
-	if err != nil {
-		return nil
-	}
-	result := []string{}
-	for _, e := range childs {
-		em := e.GetChilds(tree.DescendMethodActiveChilds)
-		lvs := tree.LeafVariantSlice{}
-		lvs = em[attrName].GetHighestPrecedence(lvs, false, true, true)
-		elemVal := lvs[0].Update.Value().ToString()
-		if !strings.HasPrefix(elemVal, attrVal) {
-			continue
-		}
-		newPath := toCompletePath.DeepCopy()
-		if newPath.Elem[len(newPath.Elem)-1].Key == nil {
-			newPath.Elem[len(newPath.Elem)-1].Key = map[string]string{}
-		}
-		newPath.Elem[len(newPath.Elem)-1].Key[attrName] = elemVal
-		pstring := newPath.ToXPath(false)
-		result = append(result, pstring)
-	}
-	return result
+// configShowEntryAdapter is an adapter that allows to use an api.Entry as a ConfigShowInterface
+// wiring the api.Entry to the reqwuired ops for the ConfigShowInterface methods
+type configShowEntryAdapter struct {
+	entry api.Entry
 }
-func (c *ConfigDiff) completeKeyName(ctx context.Context, toCompletePath *sdcpb.Path, leftOver string) []string {
-	toCompletePathCopy := toCompletePath.DeepCopy()
-	existingKeys := map[string]struct{}{}
-	for k := range toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key {
-		existingKeys[k] = struct{}{}
-	}
 
-	toCompletePathCopy.Elem[len(toCompletePathCopy.Elem)-1].Key = nil
-	entry, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
-	if err != nil {
-		return nil
+func newConfigShowEntryAdapter(entry api.Entry) *configShowEntryAdapter {
+	return &configShowEntryAdapter{
+		entry: entry,
 	}
-	result := []string{}
-	for _, k := range entry.GetSchemaKeys() {
-		_, keyexists := existingKeys[k]
-		if strings.HasPrefix(k, leftOver) && !keyexists {
-			result = append(result, fmt.Sprintf("%s[%s=", toCompletePath.ToXPath(false), k))
-		}
-	}
-	return result
 }
-func (c *ConfigDiff) completePathName(ctx context.Context, toCompletePath *sdcpb.Path) []string {
-	var err error
-	var entry tree.Entry
-	var incompleteLastElem *sdcpb.PathElem
-	if len(toCompletePath.Elem) > 0 {
-		// check if the provied path points to something that exists
-		_, err := c.tree.NavigateSdcpbPath(ctx, toCompletePath)
-		if err != nil {
-			// path does not exist, so lets strip last elem
-			if len(toCompletePath.Elem[len(toCompletePath.Elem)-1].Key) > 0 {
-				// processing keys
-			} else {
-				// processing normal path elements
-				// remove the last element since it is probably just partial
-				incompleteLastElem = toCompletePath.Elem[len(toCompletePath.Elem)-1]
-				toCompletePath.Elem = toCompletePath.Elem[:len(toCompletePath.Elem)-1]
-			}
-		}
-	}
 
-	entry, err = c.tree.NavigateSdcpbPath(ctx, toCompletePath)
-	if err != nil {
-		return nil
-	}
-	childs := entry.GetChilds(tree.DescendMethodActiveChilds)
+func (a *configShowEntryAdapter) ToJson(ctx context.Context, onlyNewOrUpdated bool) (any, error) {
+	return ops.ToJson(ctx, a.entry, onlyNewOrUpdated)
+}
 
-	var resultEntries []tree.Entry
+func (a *configShowEntryAdapter) ToJsonIETF(ctx context.Context, onlyNewOrUpdated bool) (any, error) {
+	return ops.ToJsonIETF(ctx, a.entry, onlyNewOrUpdated)
+}
 
-	doAdd := true
-	for k, v := range childs {
-		if incompleteLastElem != nil {
-			doAdd = strings.HasPrefix(k, incompleteLastElem.Name)
-		}
-		if doAdd {
-			resultEntries = append(resultEntries, v)
-		}
-	}
+func (a *configShowEntryAdapter) ToXML(ctx context.Context, onlyNewOrUpdated bool, honorNamespace bool, operationWithNamespace bool, useOperationRemove bool) (*etree.Document, error) {
+	return ops.ToXML(ctx, a.entry, onlyNewOrUpdated, honorNamespace, operationWithNamespace, useOperationRemove)
+}
 
-	results := make([]string, 0, len(resultEntries))
-	//convert to xpath
-	for _, e := range resultEntries {
-		sdcpbPath := e.SdcpbPath()
-		if len(e.GetSchemaKeys()) > 0 {
-			results = append(results, fmt.Sprintf("/%s[%s=", sdcpbPath.ToXPath(false), e.GetSchemaKeys()[0]))
-		}
-		results = append(results, fmt.Sprintf("/%s", sdcpbPath.ToXPath(false)))
-	}
-	sort.Strings(results)
-	return results
+func (a *configShowEntryAdapter) GetHighestPrecedence(_ context.Context, onlyNewOrUpdated bool, includeDefaults bool, includeExplicitDelete bool) api.LeafVariantSlice {
+	return ops.GetHighestPrecedence(a.entry, onlyNewOrUpdated, includeDefaults, includeExplicitDelete)
+}
+
+func (a *configShowEntryAdapter) GetDeletes(_ context.Context, aggregatePaths bool) (treetypes.DeleteEntriesList, error) {
+	return ops.GetDeletes(a.entry, aggregatePaths)
 }
