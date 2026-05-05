@@ -366,15 +366,37 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 	}
 
 	intent := cl.GetIntent()
+	// overwrite running intent with running prio
+	if strings.EqualFold(intent.GetName(), consts.RunningIntentName) {
+		intent.SetPrio(consts.RunningValuesPrio)
+	}
+
+	// convert base path to sdcpb.path
+	path, err := sdcpb.ParsePath(intent.GetBasePath())
+	if err != nil {
+		return err
+	}
 
 	switch intent.GetFormat() {
-	case types.ConfigFormatJson, types.ConfigFormatJsonIetf:
+	case types.ConfigFormatJson:
 		var j any
 		err = json.Unmarshal(intent.GetData(), &j)
 		if err != nil {
 			return err
 		}
 		importer = treejson.NewJsonTreeImporter(j, intent.GetName(), intent.GetPrio(), false)
+	case types.ConfigFormatJsonIetf:
+		scb := schemaclient.NewMemSchemaClientBound(c.schemaStore, c.schema)
+		updates, err := treetypes.ExpandAndConvertIntent(ctx, scb, intent.GetName(), intent.GetPrio(), []*sdcpb.Update{{
+			Path: path,
+			Value: &sdcpb.TypedValue{
+				Value: &sdcpb.TypedValue_JsonIetfVal{JsonIetfVal: intent.GetData()},
+			},
+		}}, 0)
+		if err != nil {
+			return err
+		}
+		return c.tree.AddUpdatesRecursive(ctx, updates, cl.GetIntent().Flag)
 	case types.ConfigFormatYaml:
 		var y any
 		err = yaml.Unmarshal(intent.GetData(), &y)
@@ -392,17 +414,6 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 		importer = treexml.NewXmlTreeImporter(&xmlDoc.Element, intent.GetName(), intent.GetPrio(), false)
 	default:
 		return fmt.Errorf("import of format %s not supported yet", intent.GetFormat().String())
-	}
-
-	// overwrite running intent with running prio
-	if strings.EqualFold(intent.GetName(), consts.RunningIntentName) {
-		intent.SetPrio(consts.RunningValuesPrio)
-	}
-
-	// convert base path to sdcpb.path
-	path, err := sdcpb.ParsePath(intent.GetBasePath())
-	if err != nil {
-		return err
 	}
 
 	_, err = c.tree.ImportConfig(ctx, path, importer, cl.GetIntent().Flag, c.sharedPool)
