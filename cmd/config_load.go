@@ -16,6 +16,7 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -112,6 +113,13 @@ func init() {
 	configLoadCmd.Flags().StringVar(&intentName, "intent-name", "", "The name of the configuration intent")
 	AddRpcOutputFlag(configLoadCmd)
 	EnableFlagAndDisableFileCompletion(configLoadCmd)
+
+	// Register autocompletion for the file format flag
+	if err := configLoadCmd.RegisterFlagCompletionFunc("file-format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return types.ConfigFormatsList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		log.Error(err)
+	}
 }
 
 func LoadSDCConfigCR(configByte []byte) (*v1alpha1.Config, error) {
