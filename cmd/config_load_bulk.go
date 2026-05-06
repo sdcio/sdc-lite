@@ -67,8 +67,8 @@ var configLoadBulkCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	configLoadCmd.AddCommand(configLoadBulkCmd)
-	configLoadBulkCmd.Flags().StringSliceVar(&configurationFiles, "files", nil, "The sdc configuration files to load")
-	EnableFlagAndDisableFileCompletion(configLoadBulkCmd)
-}
+// func init() {
+// 	configLoadCmd.AddCommand(configLoadBulkCmd)
+// 	configLoadBulkCmd.Flags().StringSliceVar(&configurationFiles, "files", nil, "The sdc configuration files to load")
+// 	EnableFlagAndDisableFileCompletion(configLoadBulkCmd)
+// }

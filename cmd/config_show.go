@@ -9,6 +9,7 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rawparams"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/sdcio/sdc-lite/pkg/types"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -56,4 +57,12 @@ func init() {
 	AddPathPersistentFlag(configShowCmd)
 	AddRpcOutputFlag(configShowCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
+
+	// Register autocompletion for the out format flag
+	err := configShowCmd.RegisterFlagCompletionFunc("out-format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return types.ConfigFormatsList.StringSlice(), cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		log.Error(err)
+	}
 }
