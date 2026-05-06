@@ -30,7 +30,7 @@ func (s *SchemaOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 }
 
 func (s *SchemaOutput) ToString(_ context.Context) (string, error) {
-	return fmt.Sprintf("Vendor: %s, Version: %s\n", s.Vendor, s.Version), nil
+	return fmt.Sprintf("Vendor: %s, Version: %s", s.Vendor, s.Version), nil
 }
 
 func (s *SchemaOutput) ToStringDetails(ctx context.Context) (string, error) {
