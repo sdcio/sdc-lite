@@ -7,7 +7,7 @@ replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 require (
 	github.com/beevik/etree v1.6.0
 	github.com/sdcio/config-server v0.0.57
-	github.com/sdcio/data-server v0.0.68
+	github.com/sdcio/data-server v0.0.70
 	github.com/sdcio/schema-server v0.0.34
 	github.com/sdcio/sdc-protos v0.0.54
 	github.com/sirupsen/logrus v1.9.4
@@ -98,7 +98,6 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.4 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/sdcio/cache v0.0.38 // indirect
 	github.com/sdcio/logger v0.0.3 // indirect
 	github.com/sdcio/yang-parser v0.0.12 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
@@ -134,7 +133,7 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260226221140-a57be14db171 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
-	google.golang.org/grpc v1.81.0 // indirect
+	google.golang.org/grpc v1.81.1 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
