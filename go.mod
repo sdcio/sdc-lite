@@ -7,7 +7,7 @@ replace github.com/openconfig/goyang v1.6.0 => github.com/sdcio/goyang v1.6.2-2
 require (
 	github.com/beevik/etree v1.6.0
 	github.com/sdcio/config-server v0.0.57
-	github.com/sdcio/data-server v0.0.70
+	github.com/sdcio/data-server v0.0.71
 	github.com/sdcio/schema-server v0.0.34
 	github.com/sdcio/sdc-protos v0.0.54
 	github.com/sirupsen/logrus v1.9.4
