@@ -224,8 +224,8 @@ github.com/prometheus/procfs v0.16.1/go.mod h1:teAbpZRB1iIAJYREa1LsoWUXykVXA1KlT
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
-github.com/sdcio/config-server v0.0.57 h1:4Xiwnbs3PxiIRJg/76X0GYBzpYbDYr/1WtTIXpwZ+Tc=
-github.com/sdcio/config-server v0.0.57/go.mod h1:M/f0J1HanVC2mishYPP6nyfxu2sQoeOIZMQ/z7LZCtQ=
+github.com/sdcio/config-server v0.0.58 h1:aW+JP318IC4yBV3bn+0WmSGMnj1w/TeRuL4ZUr60jsk=
+github.com/sdcio/config-server v0.0.58/go.mod h1:exO1BaRJP66LZzL/TWF9tZVpmBy9861dWdKYJpB0/G0=
 github.com/sdcio/data-server v0.0.71 h1:ClNHL0PA613Pn4JWDe39i7oYpdHni0XRvbjm02ASo0w=
 github.com/sdcio/data-server v0.0.71/go.mod h1:TlkfZ7otxGBmWu5gQfxiJDbC41XBzTDNE+Gvue9G9rY=
 github.com/sdcio/goyang v1.6.2-2 h1:qfeUKBmoKpiKAruuEc3+V8wgHKP/n1jRDEnTy23knV8=
