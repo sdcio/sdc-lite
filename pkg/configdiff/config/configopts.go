@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/sdcio/data-server/pkg/config"
+	"github.com/sdcio/data-server/pkg/tree/ops/validation"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,6 +37,13 @@ func WithSchemaPathCleanup(cleanup bool) ConfigOpt {
 func WithValidation(validation *config.Validation) ConfigOpt {
 	return func(c *Config) error {
 		c.validation = validation
+		return nil
+	}
+}
+
+func WithMustTracer(mt validation.MustTracer) ConfigOpt {
+	return func(c *Config) error {
+		c.mustTracer = mt
 		return nil
 	}
 }

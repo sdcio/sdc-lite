@@ -436,8 +436,11 @@ func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResu
 	if err != nil {
 		return nil, nil, err
 	}
-	// run validation processor on the tree
-	valResult, valStat := validation.Validate(ctx, c.tree.Entry, c.config.Validation(), c.sharedPool)
+	var valOpts []validation.ValidateOption
+	if mt := c.config.MustTracer(); mt != nil {
+		valOpts = append(valOpts, validation.WithMustTracer(mt))
+	}
+	valResult, valStat := validation.Validate(ctx, c.tree.Entry, c.config.Validation(), c.sharedPool, valOpts...)
 	return valResult, valStat, nil
 }
 

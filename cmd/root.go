@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"os"
+	"sync"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	log "github.com/sirupsen/logrus"
@@ -12,6 +14,7 @@ import (
 var optsP = config.ConfigPersistentOpts{}
 var jsonOutput bool
 var rpcOutput bool
+var completionOnce sync.Once
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -21,9 +24,38 @@ var rootCmd = &cobra.Command{
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
-	rootCmd.AddCommand(makeCompletionCmd(rootCmd))
-	if err := rootCmd.Execute(); err != nil {
+	if err := ExecuteContext(context.Background(), nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+// ExecuteContext runs the CLI with explicit arguments (or os.Args[1:] when args
+// is nil) and resets per-invocation flag state across commands.
+func ExecuteContext(ctx context.Context, args []string) error {
+	completionOnce.Do(func() {
+		rootCmd.AddCommand(makeCompletionCmd(rootCmd))
+	})
+	optsP = nil
+	resetCommandFlags(rootCmd)
+	rootCmd.SetArgs(args)
+	return rootCmd.ExecuteContext(ctx)
+}
+
+func resetCommandFlags(c *cobra.Command) {
+	resetFlagSet := func(fs *pflag.FlagSet) {
+		fs.VisitAll(func(f *pflag.Flag) {
+			if sliceVal, ok := f.Value.(pflag.SliceValue); ok {
+				_ = sliceVal.Replace(nil)
+			} else {
+				_ = f.Value.Set(f.DefValue)
+			}
+			f.Changed = false
+		})
+	}
+	resetFlagSet(c.Flags())
+	resetFlagSet(c.PersistentFlags())
+	for _, sub := range c.Commands() {
+		resetCommandFlags(sub)
 	}
 }
 
