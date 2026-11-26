@@ -3,6 +3,7 @@ package params
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
@@ -34,7 +35,7 @@ func (c *ConfigLoad) Run(ctx context.Context, cde Executor) (interfaces.Output, 
 		return nil, err
 	}
 	elapsed := time.Since(start)
-	fmt.Println("Execution time:", elapsed)
+	fmt.Fprintln(os.Stderr, "Execution time:", elapsed)
 
 	result := output.NewNullOutput()
 	return result, nil
