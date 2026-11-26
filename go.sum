@@ -151,8 +151,8 @@ github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 h1:Ovs26xHkKqVztRpIrF/92Bcuy
 github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgfV/d3M/q6VIi02HzZEHgUlZvzk=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 h1:NmZ1PKzSTQbuGHw9DGPFomqkkLWMC+vZCkfs+FHv1Vg=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3/go.mod h1:zQrxl1YP88HQlA6i9c63DSVPFklWpGX4OWAc9bFuaH4=
-github.com/henderiw/apiserver-builder v0.0.8 h1:TxJnhISBgrhw1HJ1cSNAz7nveu86y3jy4dvcmNQdsVc=
-github.com/henderiw/apiserver-builder v0.0.8/go.mod h1:7VrZxXPR54Urtg49taC7cNgo+AOzSxWEJXPDdDbKnCk=
+github.com/henderiw/apiserver-builder v0.0.12 h1:fggpZo5sj+ENV3qRgFE39EpMeGXGZwX3Khc3lW+ggGg=
+github.com/henderiw/apiserver-builder v0.0.12/go.mod h1:7VrZxXPR54Urtg49taC7cNgo+AOzSxWEJXPDdDbKnCk=
 github.com/henderiw/apiserver-store v0.0.5 h1:5ZrzZAGgn3iIuOCw/R1uVreIFm6YeoKTOtkZLGxyoNM=
 github.com/henderiw/apiserver-store v0.0.5/go.mod h1:RuXLMHJwszn6LXgL6fO9fxMC7AW5wAc4zOddnnZpkKI=
 github.com/henderiw/iputil v0.0.0-20231218081610-37f78ad9c81c h1:nFnCNyRV1Ej/zqV/gn8UnFESkoPUXhwpUCZyhSYGSYA=
@@ -224,8 +224,8 @@ github.com/prometheus/procfs v0.16.1/go.mod h1:teAbpZRB1iIAJYREa1LsoWUXykVXA1KlT
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
-github.com/sdcio/config-server v0.0.57 h1:4Xiwnbs3PxiIRJg/76X0GYBzpYbDYr/1WtTIXpwZ+Tc=
-github.com/sdcio/config-server v0.0.57/go.mod h1:M/f0J1HanVC2mishYPP6nyfxu2sQoeOIZMQ/z7LZCtQ=
+github.com/sdcio/config-server v0.0.62 h1:FiprhnJhq2YdYrZCOTaszH09pAYHsWt8hFbaEEWWXQs=
+github.com/sdcio/config-server v0.0.62/go.mod h1:sY/HNuSRc/dCgl57HnJvrrdA4iCn8afCAEXYq2mM/h8=
 github.com/sdcio/data-server v0.0.71 h1:ClNHL0PA613Pn4JWDe39i7oYpdHni0XRvbjm02ASo0w=
 github.com/sdcio/data-server v0.0.71/go.mod h1:TlkfZ7otxGBmWu5gQfxiJDbC41XBzTDNE+Gvue9G9rY=
 github.com/sdcio/goyang v1.6.2-2 h1:qfeUKBmoKpiKAruuEc3+V8wgHKP/n1jRDEnTy23knV8=
