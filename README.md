@@ -308,6 +308,55 @@ sdc-lite schema load --help
 
 ---
 
+## Tracing `must` statements
+
+When `config validate` reports an unexpected `must` failure, sdc-lite can record how each `must` expression was evaluated. The trace can be shared for diagnosis.
+
+Trace the failing evaluations:
+
+```bash
+sdc-lite config validate -t <target> --trace-failing-only
+```
+
+Trace evaluations matching a substring, and write them to a chosen directory:
+
+```bash
+sdc-lite config validate -t <target> --trace-must "<path or expression substring>" --trace-dir ./traces
+```
+
+When traces are written, the command reports where they are:
+
+```
+Must traces: 2 evaluation(s) written to ./traces
+```
+
+### Flags
+
+- `--trace-must` – Trace evaluations whose entry path, keyless path, or `must` expression contains the substring. Repeatable. Use `"*"` to trace every evaluation, including passed and skipped ones.
+- `--trace-failing-only` – Keep only evaluations with status `failed`, `compile_error`, `runtime_error`, or `stack_underflow_ignored`. Can be used on its own.
+- `--trace-dir` – Output directory. Requires `--trace-must` or `--trace-failing-only`. Default: `<target cache dir>/traces/<UTC timestamp>`, for example `~/.cache/sdc-lite/targets/<target>/traces/20261126T102400.000000000Z`.
+
+### Output
+
+The output directory contains:
+
+- `index.jsonl` – One line per traced evaluation: sequence number, file name, entry path, keyless path, schema kind, owner, value, `must` statement, error message, status, result, and event count.
+- One `NNNN-<path>-<hash>.jsonl` file per evaluation, in sequence order. Each file has:
+  1. `must_header` – The `must` statement and the entry it was evaluated against.
+  2. `must_program` – The compiled XPath program.
+  3. `vm_start`, `vm_instr`, `vm_instr_done`, `vm_end` – The XPath VM instructions with the evaluation stack, path stack, and predicate keys.
+  4. `adapter_navigate`, `adapter_get_value`, `adapter_breadth_search`, `adapter_follow_leafref` – The lookups into the data-server tree, with their inputs and results.
+  5. `must_end` – The outcome: `status` (`passed`, `failed`, `compile_error`, `runtime_error`, `stack_underflow_ignored`, or `skipped`), `result`, `error`, and `skip_reason`.
+
+Each file is JSON Lines, one record per line:
+
+```bash
+head -n 3 traces/0001-*.jsonl
+tail -n 1 traces/0001-*.jsonl
+```
+
+---
+
 ## Command Reference
 
 ### **`config` — Config-based actions**
@@ -357,8 +406,12 @@ sdc-lite config diff -t <target> [--type side-by-side-patch] [--context 2] [--no
 
 #### Validate configuration
 ```bash
-sdc-lite config validate -t <target>
+sdc-lite config validate -t <target> [--detailed] [--trace-must <substring>]... [--trace-failing-only] [--trace-dir <dir>]
 ```
+- `-d, --detailed` – Show detailed output
+- `--trace-must` – Trace `must` evaluations matching a substring (`*` for all). Repeatable.
+- `--trace-failing-only` – Trace only failing or errored `must` evaluations
+- `--trace-dir string` – Directory for the trace files. See [Tracing `must` statements](#tracing-must-statements).
 
 ---
 
