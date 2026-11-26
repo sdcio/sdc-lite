@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/sdcio/data-server/pkg/config"
+	"github.com/sdcio/data-server/pkg/tree/ops/validation"
 	"github.com/sdcio/schema-server/pkg/store"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
@@ -17,6 +18,7 @@ type Config struct {
 	loglevel          string
 	schemaPathCleanup bool
 	validation        *config.Validation
+	mustTracer        validation.MustTracer
 	schemaStore       store.Store
 }
 
@@ -103,4 +105,8 @@ func (c *Config) SchemaPathCleanup() bool {
 
 func (c *Config) Validation() *config.Validation {
 	return c.validation
+}
+
+func (c *Config) MustTracer() validation.MustTracer {
+	return c.mustTracer
 }

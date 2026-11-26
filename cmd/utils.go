@@ -47,6 +47,11 @@ func RunFromRaw(ctx context.Context, opts config.ConfigOpts, optsP config.Config
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if st := cd.GetSchemaStore(); st != nil {
+			_ = st.Close()
+		}
+	}()
 	err = cd.InitTargetFolder(ctx)
 	if err != nil {
 		return nil, err
