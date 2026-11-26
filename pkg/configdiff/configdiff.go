@@ -3,6 +3,7 @@ package configdiff
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,6 +66,22 @@ func NewConfigDiff(ctx context.Context, c *config.Config) (*ConfigDiff, error) {
 	return cd, nil
 }
 
+// ErrNoConfigLoaded is returned by tree operations when no schema or configuration has been loaded.
+var ErrNoConfigLoaded = errors.New("no configuration loaded")
+
+// requireTree returns an ErrNoConfigLoaded-wrapping error when no config tree exists yet.
+// The message explains that an in-memory session starts empty and persisted targets are not read.
+func (c *ConfigDiff) requireTree() error {
+	if c.tree != nil {
+		return nil
+	}
+	const hint = "this session starts empty and persisted targets are not loaded; load data first or start from an existing target (pipeline run -t <target>)"
+	if c.schema == nil {
+		return fmt.Errorf("%w: no schema loaded; run schema-load, then config-load, before this command (%s)", ErrNoConfigLoaded, hint)
+	}
+	return fmt.Errorf("%w: run config-load before this command (%s)", ErrNoConfigLoaded, hint)
+}
+
 func (c *ConfigDiff) CopyEmptyConfigDiff(ctx context.Context) (*ConfigDiff, error) {
 	result, err := NewConfigDiff(ctx, c.config)
 	if err != nil {
@@ -76,6 +93,9 @@ func (c *ConfigDiff) CopyEmptyConfigDiff(ctx context.Context) (*ConfigDiff, erro
 }
 
 func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, error) {
+	if err := c.requireTree(); err != nil {
+		return nil, err
+	}
 	// finish InsertionPhase on tree
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
@@ -96,6 +116,9 @@ func (c *ConfigDiff) GetTreeJson(ctx context.Context, path *sdcpb.Path) (any, er
 }
 
 func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any, error) {
+	if err := c.requireTree(); err != nil {
+		return nil, err
+	}
 	// export running intents
 	lvs := ops.LeafsOfOwner(c.tree.Entry, consts.RunningIntentName)
 
@@ -130,6 +153,9 @@ func (c *ConfigDiff) GetRunningJson(ctx context.Context, path *sdcpb.Path) (any,
 }
 
 func (c *ConfigDiff) GetDiff(ctx context.Context, dc *params.DiffConfig) (string, error) {
+	if err := c.requireTree(); err != nil {
+		return "", err
+	}
 	//TODO: currently we only support json diff
 	if dc.GetFormat() != types.ConfigFormatJson {
 		return "", fmt.Errorf("diff only supported for json format currently")
@@ -335,6 +361,9 @@ func (c *ConfigDiff) buildRootTree(ctx context.Context) (err error) {
 }
 
 func (c *ConfigDiff) TreeBlame(ctx context.Context, params *params.ConfigBlameParams) (*sdcpb.BlameTreeElement, error) {
+	if err := c.requireTree(); err != nil {
+		return nil, err
+	}
 	var elem = c.tree.Entry
 	var err error
 	// if a path is provided, navigate to the path first
@@ -414,6 +443,9 @@ func (c *ConfigDiff) TreeLoadData(ctx context.Context, cl *params.ConfigLoad) er
 }
 
 func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConfig) (params.ConfigShowInterface, error) {
+	if err := c.requireTree(); err != nil {
+		return nil, err
+	}
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, err
@@ -428,10 +460,16 @@ func (c *ConfigDiff) TreeShow(ctx context.Context, config *params.ConfigShowConf
 }
 
 func (c *ConfigDiff) GetJson(ctx context.Context, onlyNewOrUpdated bool) (any, error) {
+	if err := c.requireTree(); err != nil {
+		return nil, err
+	}
 	return ops.ToJson(ctx, c.tree.Entry, onlyNewOrUpdated)
 }
 
 func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResults, *treetypes.ValidationStats, error) {
+	if err := c.requireTree(); err != nil {
+		return nil, nil, err
+	}
 	err := c.tree.FinishInsertionPhase(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -442,6 +480,9 @@ func (c *ConfigDiff) TreeValidate(ctx context.Context) (treetypes.ValidationResu
 }
 
 func (c *ConfigDiff) GetPathCompletions(ctx context.Context, toComplete string) []string {
+	if c.tree == nil {
+		return nil
+	}
 	return ops.GetPathCompletions(ctx, c.tree.Entry, toComplete)
 }
 

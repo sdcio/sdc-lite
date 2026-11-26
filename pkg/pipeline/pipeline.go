@@ -14,18 +14,44 @@ import (
 	"github.com/sdcio/sdc-lite/pkg/configdiff/commandregistry"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/executor"
+	"github.com/sdcio/sdc-lite/pkg/configdiff/params"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/types"
 	"github.com/sdcio/sdc-lite/pkg/utils"
 )
 
+// Pipeline executes JSON-RPC steps from a file, stdin or FIFO against a ConfigDiff.
+// By default it starts empty and in-memory; with a persistent target it starts from the
+// target's stored schema and intents.
 type Pipeline struct {
 	filename string
+	// persistentOpts, when set, selects the persisted target the pipeline starts from.
+	persistentOpts config.ConfigPersistentOpts
+	// persist writes the resulting state back to the target after a successful run.
+	persist bool
 }
 
-func NewPipeline(filename string) *Pipeline {
+// PipelineOption configures a Pipeline.
+type PipelineOption func(*Pipeline)
+
+// WithTarget starts the pipeline from the persisted target described by optsP.
+// The target must already exist with a schema.
+func WithTarget(optsP config.ConfigPersistentOpts) PipelineOption {
+	return func(p *Pipeline) { p.persistentOpts = optsP }
+}
+
+// WithPersist writes the target back to disk when the pipeline ends without a step error.
+// It requires WithTarget.
+func WithPersist() PipelineOption {
+	return func(p *Pipeline) { p.persist = true }
+}
+
+func NewPipeline(filename string, opts ...PipelineOption) *Pipeline {
 	result := &Pipeline{
 		filename: filename,
+	}
+	for _, o := range opts {
+		o(result)
 	}
 
 	return result
@@ -44,15 +70,45 @@ func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
 		return
 	}
 
-	cdc, err := config.NewConfig()
-	if err != nil {
-		outputChan <- NewPipelineResultError(0, err)
+	if p.persist && p.persistentOpts == nil {
+		outputChan <- NewPipelineResultError(0, fmt.Errorf("persisting requires a target"))
 		return
 	}
-	cd, err := configdiff.NewConfigDiff(ctx, cdc)
-	if err != nil {
-		outputChan <- NewPipelineResultError(0, err)
-		return
+
+	var cd params.Executor
+	var cdp *configdiff.ConfigDiffPersistence
+	if p.persistentOpts != nil {
+		cpc, err := config.NewConfigPersistent(config.ConfigOpts{}, p.persistentOpts)
+		if err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
+		cdp, err = configdiff.NewConfigDiffPersistence(ctx, cpc)
+		if err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
+		defer func() {
+			if st := cdp.GetSchemaStore(); st != nil {
+				_ = st.Close()
+			}
+		}()
+		if err = cdp.InitTargetFolder(ctx); err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
+		cd = cdp
+	} else {
+		cdc, err := config.NewConfig()
+		if err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
+		cd, err = configdiff.NewConfigDiff(ctx, cdc)
+		if err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
 	}
 
 	jd := json.NewDecoder(fileRC)
@@ -144,6 +200,14 @@ func (p *Pipeline) Run(ctx context.Context, outputChan chan<- *PipelineResult) {
 		outputChan <- NewPipelineResultOutput(envelope.Id, output)
 
 		step++
+	}
+
+	if p.persist {
+		if err := cdp.Persist(ctx); err != nil {
+			outputChan <- NewPipelineResultError(0, err)
+			return
+		}
+		fmt.Fprintln(os.Stderr, "target persisted")
 	}
 }
 
