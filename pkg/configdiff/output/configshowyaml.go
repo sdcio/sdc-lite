@@ -22,8 +22,9 @@ func NewConfigShowYamlOutput(root TreeToJson) *ConfigShowYamlOutput {
 	}
 }
 
-func (c *ConfigShowYamlOutput) SetOnlyNewOrUpdated(v bool) {
+func (c *ConfigShowYamlOutput) SetOnlyNewOrUpdated(v bool) *ConfigShowYamlOutput {
 	c.onlyNewOrUpdated = v
+	return c
 }
 
 func (o *ConfigShowYamlOutput) ToString(ctx context.Context) (string, error) {

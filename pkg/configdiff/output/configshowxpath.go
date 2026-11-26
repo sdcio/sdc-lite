@@ -13,8 +13,13 @@ import (
 	"github.com/sdcio/sdc-lite/cmd/interfaces"
 )
 
+var newlineReplacer = strings.NewReplacer("\r", `\r`, "\n", `\n`)
+
+// ConfigShowXPathOutput renders active tree leaves as sorted "xpath -> value" lines
+// (with newlines escaped so each leaf stays on one line) or as a JSON path-to-value map.
 type ConfigShowXPathOutput struct {
-	data TreeToXPath
+	data             TreeToXPath
+	onlyNewOrUpdated bool
 }
 
 var _ interfaces.Output = (*ConfigShowXPathOutput)(nil)
@@ -25,13 +30,18 @@ func NewConfigShowXPathOutput(data TreeToXPath) *ConfigShowXPathOutput {
 	}
 }
 
+func (o *ConfigShowXPathOutput) SetOnlyNewOrUpdated(v bool) *ConfigShowXPathOutput {
+	o.onlyNewOrUpdated = v
+	return o
+}
+
 func (o *ConfigShowXPathOutput) ToString(ctx context.Context) (string, error) {
 	sb := &strings.Builder{}
 	mapData := make(map[string]string)
 
-	for _, v := range o.data.GetHighestPrecedence(ctx, false, false, false) {
+	for _, v := range o.data.GetHighestPrecedence(ctx, o.onlyNewOrUpdated, false, false) {
 		path := v.Update.SdcpbPath().ToXPath(false)
-		value := v.Update.Value().ToString()
+		value := newlineReplacer.Replace(v.Update.Value().ToString())
 		mapData[path] = value
 	}
 
@@ -51,7 +61,7 @@ func (o *ConfigShowXPathOutput) ToStringDetails(ctx context.Context) (string, er
 }
 func (o *ConfigShowXPathOutput) ToStruct(ctx context.Context) (any, error) {
 	mapData := make(map[string]any)
-	for _, v := range o.data.GetHighestPrecedence(ctx, false, false, false) {
+	for _, v := range o.data.GetHighestPrecedence(ctx, o.onlyNewOrUpdated, false, false) {
 		path := v.Update.SdcpbPath().ToXPath(false)
 		value, err := utils.GetJsonValue(v.Update.Value(), false)
 		if err != nil {
