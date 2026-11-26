@@ -403,9 +403,20 @@ Automate sequences of configuration operations.
 
 #### Run a pipeline
 ```bash
-sdc-lite pipeline run --file <pipeline.json>
+sdc-lite pipeline run --pipeline-file <pipeline.json> [-t <target>] [--persist]
 ```
-- `--file string` – Path to the pipeline definition (JSON) file or `-` for stdin. The pipeline file consists of sequential steps, each specified as a JSON-RPC message.
+- `--pipeline-file string` – Path to the pipeline definition (JSON) file or `-` for stdin. The pipeline file consists of sequential steps, each specified as a JSON-RPC message.
+- `-t, --target string` – Start from an existing target's stored schema and intents. The target must already exist with a schema (create it with `schema load -t <target>`).
+- `--persist` – Write the resulting state (schema and all intents, including ones loaded by pipeline steps) back to the target. Requires `-t`. Nothing is written if a step fails.
+
+By default a pipeline starts **empty and in-memory**: persisted targets are not loaded and nothing is written back. Steps that need data (`config-show`, `config-validate`, `config-diff`, `config-blame`) fail with a "no configuration loaded" error unless the pipeline first runs `schema-load` and `config-load` steps or is started with `-t <target>`.
+
+Example without a target:
+```json
+{"method":"schema-load","jsonrpc":"2.0","id":1,"params":{"file":"schema.yaml"}}
+{"method":"config-load","jsonrpc":"2.0","id":2,"params":{"name":"running","prio":500,"flags":{},"format":"json","file":"running.json"}}
+{"method":"config-show","jsonrpc":"2.0","id":3,"params":{"all":true,"path":"/interface","format":"yaml"}}
+```
 
 ---
 

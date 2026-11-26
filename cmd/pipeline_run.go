@@ -3,12 +3,17 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
 	"github.com/sdcio/sdc-lite/pkg/pipeline"
 	"github.com/spf13/cobra"
 )
 
-var pipelineFile string
+var (
+	pipelineFile    string
+	pipelineTarget  string
+	pipelinePersist bool
+)
 
 // pipelineRunCmd
 var pipelineRunCmd = &cobra.Command{
@@ -18,7 +23,18 @@ var pipelineRunCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
-		pipe := pipeline.NewPipeline(pipelineFile)
+		if pipelinePersist && pipelineTarget == "" {
+			return fmt.Errorf("--persist requires a target (-t)")
+		}
+
+		var pipeOpts []pipeline.PipelineOption
+		if pipelineTarget != "" {
+			pipeOpts = append(pipeOpts, pipeline.WithTarget(append(optsP, config.WithTargetName(pipelineTarget))))
+		}
+		if pipelinePersist {
+			pipeOpts = append(pipeOpts, pipeline.WithPersist())
+		}
+		pipe := pipeline.NewPipeline(pipelineFile, pipeOpts...)
 		outputChan := make(chan *pipeline.PipelineResult)
 
 		var outFormat rpc.OutFormat
@@ -67,6 +83,8 @@ func init() {
 	pipelineRunCmd.RegisterFlagCompletionFunc("pipeline-file", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"*.json"}, cobra.ShellCompDirectiveFilterFileExt
 	})
+	pipelineRunCmd.Flags().StringVarP(&pipelineTarget, "target", "t", "", "start from this existing target's schema and intents (default: empty, in-memory)")
+	pipelineRunCmd.Flags().BoolVar(&pipelinePersist, "persist", false, "write the resulting state back to the target after a successful run (requires -t)")
 	AddDetailedFlag(pipelineRunCmd)
 	EnableFlagAndDisableFileCompletion(configShowCmd)
 }
