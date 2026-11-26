@@ -29,8 +29,9 @@ func NewConfigShowXmlOutput(root TreeToXML) *ConfigShowXmlOutput {
 	}
 }
 
-func (c *ConfigShowXmlOutput) SetOnlyNewOrUpdated(v bool) {
+func (c *ConfigShowXmlOutput) SetOnlyNewOrUpdated(v bool) *ConfigShowXmlOutput {
 	c.onlyNewOrUpdated = v
+	return c
 }
 
 func (c *ConfigShowXmlOutput) SetHonorNamespace(v bool) {

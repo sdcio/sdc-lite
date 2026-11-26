@@ -56,17 +56,18 @@ func (c *ConfigShowConfig) Run(ctx context.Context, cde Executor) (interfaces.Ou
 	if err != nil {
 		return nil, err
 	}
+	onlyNewOrUpdated := !c.GetAll()
 	switch c.GetOutputFormat() {
 	case types.ConfigFormatXml:
-		return output.NewConfigShowXmlOutput(entry), nil
+		return output.NewConfigShowXmlOutput(entry).SetOnlyNewOrUpdated(onlyNewOrUpdated), nil
 	case types.ConfigFormatJson:
-		return output.NewConfigShowJsonOutput(entry), nil
+		return output.NewConfigShowJsonOutput(entry).SetOnlyNewOrUpdated(onlyNewOrUpdated), nil
 	case types.ConfigFormatJsonIetf:
-		return output.NewConfigShowJsonIetfOutput(entry), nil
+		return output.NewConfigShowJsonIetfOutput(entry).SetOnlyNewOrUpdated(onlyNewOrUpdated), nil
 	case types.ConfigFormatYaml:
-		return output.NewConfigShowYamlOutput(entry), nil
+		return output.NewConfigShowYamlOutput(entry).SetOnlyNewOrUpdated(onlyNewOrUpdated), nil
 	case types.ConfigFormatXPath:
-		return output.NewConfigShowXPathOutput(entry), nil
+		return output.NewConfigShowXPathOutput(entry).SetOnlyNewOrUpdated(onlyNewOrUpdated), nil
 	case types.ConfigFormatSdc:
 		fallthrough
 	default:
