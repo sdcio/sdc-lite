@@ -27,17 +27,20 @@ var configDiffCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-
 		ctx := cmd.Context()
 
-		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
+		rawParam := rawparams.NewDiffConfigRaw().
+			SetDiffType(difftypeStr).
+			SetContextLines(contextLines).
+			SetNoColor(noColor).
+			SetConfig(outFormatStr).
+			SetPath(path)
 
-		rawParam := rawparams.NewDiffConfigRaw().SetContextLines(contextLines).SetNoColor(!noColor).SetConfig(outFormatStr).SetPath(path)
-
-		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
 			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
+
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		opts := config.ConfigOpts{}
 		out, err := RunFromRaw(ctx, opts, optsP, false, rawParam)

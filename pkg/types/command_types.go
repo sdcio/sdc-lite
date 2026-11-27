@@ -20,7 +20,7 @@ func (c CommandType) String() string {
 func ParseCommandType(s string) CommandType {
 	switch s {
 	case CommandTypeConfigBlame:
-		return CommandTypeConfigDiff
+		return CommandTypeConfigBlame
 	case CommandTypeConfigDiff:
 		return CommandTypeConfigDiff
 	case CommandTypeConfigShow:

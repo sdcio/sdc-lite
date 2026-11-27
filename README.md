@@ -405,18 +405,29 @@ Automate sequences of configuration operations.
 ```bash
 sdc-lite pipeline run --pipeline-file <pipeline.json> [-t <target>] [--persist]
 ```
-- `--pipeline-file string` – Path to the pipeline definition (JSON) file or `-` for stdin. The pipeline file consists of sequential steps, each specified as a JSON-RPC message.
+- `--pipeline-file string` – Path to the pipeline definition (NDJSON) file, `-` for stdin, or a named pipe (FIFO). Each line is a JSON-RPC 2.0 Request (`id` set) or Notification (`id` omitted).
 - `-t, --target string` – Start from an existing target's stored schema and intents. The target must already exist with a schema (create it with `schema load -t <target>`).
-- `--persist` – Write the resulting state (schema and all intents, including ones loaded by pipeline steps) back to the target. Requires `-t`. Nothing is written if a step fails.
+- `--persist` – Write the resulting state (schema and all intents, including ones loaded by pipeline steps) back to the target. Requires `-t`. Nothing is written if a batch step fails.
 
 By default a pipeline starts **empty and in-memory**: persisted targets are not loaded and nothing is written back. Steps that need data (`config-show`, `config-validate`, `config-diff`, `config-blame`) fail with a "no configuration loaded" error unless the pipeline first runs `schema-load` and `config-load` steps or is started with `-t <target>`.
 
-Example without a target:
+Use `--rpc` on any `schema load` or `config` subcommand (no `-t` needed unless converting `--file-format sdc`) to print its JSON-RPC 2.0 step instead of executing it:
+```bash
+sdc-lite schema load -f schema.yaml --rpc > pipe.json
+sdc-lite config load --file running.json --file-format json --intent-name running --rpc >> pipe.json
+sdc-lite config show -a --path /interface -o yaml --rpc >> pipe.json
+sdc-lite config validate --rpc >> pipe.json
+```
+
+Example `pipe.json`:
 ```json
 {"method":"schema-load","jsonrpc":"2.0","id":1,"params":{"file":"schema.yaml"}}
-{"method":"config-load","jsonrpc":"2.0","id":2,"params":{"name":"running","prio":500,"flags":{},"format":"json","file":"running.json"}}
+{"method":"config-load","jsonrpc":"2.0","id":2,"params":{"name":"running","prio":500,"flags":{"new":false,"delete":false,"only-intended":false},"format":"json","base-path":"","file":"running.json"}}
 {"method":"config-show","jsonrpc":"2.0","id":3,"params":{"all":true,"path":"/interface","format":"yaml"}}
+{"method":"config-validate","jsonrpc":"2.0","id":4,"params":{}}
 ```
+
+Every Request step (`id` present) produces a JSON-RPC 2.0 Response with a self-describing `result` (`{"method": "...", "format"?: "...", "data"?: ...}`) or structured `error` (`{"code": ..., "message": "...", "data"?: {"method": "..."}}`). Steps without `id` act as JSON-RPC 2.0 Notifications and emit no stdout response. See [`openrpc.json`](openrpc.json) for the full schema.
 
 ---
 

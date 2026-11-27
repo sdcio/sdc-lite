@@ -23,15 +23,13 @@ var configShowCmd = &cobra.Command{
 	Short:        "show config",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
-		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
-
 		rawParam := rawparams.NewConfigShowConfigRaw().SetAll(outputAll).SetOutputFormat(outFormatStr).SetPath(path)
 
-		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
 			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
+
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		ctx := cmd.Context()
 

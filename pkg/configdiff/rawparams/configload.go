@@ -115,7 +115,7 @@ func (i *ConfigLoadRaw) UnRaw() (executor.RunCommand, error) {
 		return nil, fmt.Errorf("no data provided")
 	}
 
-	intent := types.NewIntent(i.Name, i.Prio, i.Flags.UnRaw()).SetData(cf, data)
+	intent := types.NewIntent(i.Name, i.Prio, i.Flags.UnRaw()).SetData(cf, data).SetBasePath(i.BasePath)
 
 	return params.NewConfigLoad(intent), nil
 }

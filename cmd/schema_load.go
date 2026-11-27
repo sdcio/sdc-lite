@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
@@ -26,11 +27,16 @@ var SchemaLoadCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		rawParam := rawparams.NewSchemaLoadConfigRaw()
-		rawParam.SetFile(schemaDefinitionFile)
+		if err = rawParam.SetFile(schemaDefinitionFile); err != nil {
+			return err
+		}
 
-		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
 			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
+		}
+
+		if targetName == "" {
+			return fmt.Errorf("required flag(s) \"target\" not set")
 		}
 
 		opts := config.ConfigOpts{
@@ -65,7 +71,7 @@ func init() {
 	if err != nil {
 		log.Error(err)
 	}
-	err = AddTargetPersistentFlag(SchemaLoadCmd)
+	err = AddTargetOptionalForRpcFlag(SchemaLoadCmd)
 	if err != nil {
 		log.Error(err)
 	}

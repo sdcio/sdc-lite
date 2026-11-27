@@ -29,6 +29,11 @@ func (c *NullOutput) ToStruct(_ context.Context) (any, error) {
 	return c, nil
 }
 
+// IsEmptyOutput reports that NullOutput carries no result payload.
+func (c *NullOutput) IsEmptyOutput() bool {
+	return true
+}
+
 func (c *NullOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)
 

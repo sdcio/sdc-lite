@@ -11,12 +11,12 @@ import (
 )
 
 type DiffConfigRaw struct {
-	DiffType     string `json:"diff_type" yaml:"diff_type"`
+	DiffType     string `json:"diff-type" yaml:"diff-type"`
 	Format       string `json:"format" yaml:"format"`
-	ContextLines int    `json:"context_lines" yaml:"context_lines"`
+	ContextLines int    `json:"context-lines" yaml:"context-lines"`
 	Width        int    `json:"width" yaml:"width"`
-	NoColor      bool   `json:"no_color" yaml:"no_color"`
-	NoShowHeader bool   `json:"no_show_header" yaml:"no_show_header"`
+	NoColor      bool   `json:"no-color" yaml:"no-color"`
+	NoShowHeader bool   `json:"no-show-header" yaml:"no-show-header"`
 	Path         string `json:"path" yaml:"path"`
 }
 

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/rpc"
@@ -15,13 +16,16 @@ var (
 	pipelinePersist bool
 )
 
-// pipelineRunCmd
 var pipelineRunCmd = &cobra.Command{
 	Use:          "run",
 	Short:        "run pipeline",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
+
+		if strings.TrimSpace(pipelineFile) == "" {
+			return fmt.Errorf("--pipeline-file is required")
+		}
 
 		if pipelinePersist && pipelineTarget == "" {
 			return fmt.Errorf("--persist requires a target (-t)")
@@ -37,43 +41,38 @@ var pipelineRunCmd = &cobra.Command{
 		pipe := pipeline.NewPipeline(pipelineFile, pipeOpts...)
 		outputChan := make(chan *pipeline.PipelineResult)
 
-		var outFormat rpc.OutFormat
-
-		switch {
-		case detailed:
-			outFormat = rpc.OutFormatDetailed
-		case jsonOutput:
-			outFormat = rpc.OutFormatJson
-		default:
-			outFormat = rpc.OutFormatString
-		}
-
 		go func() {
 			pipe.Run(ctx, outputChan)
 		}()
-		var jr *rpc.JsonRpcResult
+
+		var fatalErr error
 		for {
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("context deadline exceeded")
 			case out, ok := <-outputChan:
 				if !ok {
-					// channel closed
-					return nil
+					return fatalErr
 				}
-				jr = rpc.NewJsonRpcResult(out.GetId(), nil, out.GetOutput())
+				if out.IsError() && out.IsFatal() && fatalErr == nil {
+					fatalErr = out.GetError()
+				}
+				if !out.HasResponse() {
+					continue
+				}
+				var jr *rpc.JsonRpcResult
 				if out.IsError() {
-					// error received
-					jr = rpc.NewJsonRpcResult(out.GetId(), out.GetError(), nil)
+					jr = rpc.NewJsonRpcError(out.GetId(), out.GetMethod(), out.GetErrorCode(), out.GetError())
+				} else {
+					jr = rpc.NewJsonRpcSuccess(out.GetId(), out.GetMethod(), out.GetFormat(), out.GetOutput())
 				}
-				data, err := jr.JsonMarshall(ctx, outFormat)
+				data, err := jr.JsonMarshall(ctx)
 				if err != nil {
 					return err
 				}
 				fmt.Println(string(data))
 			}
 		}
-
 	},
 }
 
@@ -85,6 +84,5 @@ func init() {
 	})
 	pipelineRunCmd.Flags().StringVarP(&pipelineTarget, "target", "t", "", "start from this existing target's schema and intents (default: empty, in-memory)")
 	pipelineRunCmd.Flags().BoolVar(&pipelinePersist, "persist", false, "write the resulting state back to the target after a successful run (requires -t)")
-	AddDetailedFlag(pipelineRunCmd)
-	EnableFlagAndDisableFileCompletion(configShowCmd)
+	EnableFlagAndDisableFileCompletion(pipelineRunCmd)
 }

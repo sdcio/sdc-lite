@@ -2,6 +2,7 @@ package output
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -47,5 +48,12 @@ func (b *BlameResultOutput) WriteToJson(ctx context.Context, w io.Writer) error 
 }
 
 func (b *BlameResultOutput) ToStruct(_ context.Context) (any, error) {
-	return b, nil
+	if b == nil || b.BlameTreeElement == nil {
+		return json.RawMessage("{}"), nil
+	}
+	jsonBytes, err := protojson.Marshal(b.BlameTreeElement)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(jsonBytes), nil
 }
