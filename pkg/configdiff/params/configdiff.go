@@ -101,6 +101,10 @@ func (d *DiffConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, 
 	return output.NewConfigDiffOutput(diff), err
 }
 
+func (d *DiffConfig) ResultFormat() types.ConfigFormat {
+	return d.format
+}
+
 func (d *DiffConfig) String() string {
 	return types.CommandTypeConfigDiff
 }

@@ -34,7 +34,9 @@ var configLoadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
+		if !rpcOutput {
+			fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
+		}
 
 		ctx := cmd.Context()
 
@@ -48,14 +50,17 @@ var configLoadCmd = &cobra.Command{
 			return err
 		}
 
-		fw := utils.NewFileWrapper(configurationFile)
-		configByte, err := fw.Bytes()
-		if err != nil {
-			return err
-		}
-
 		switch configFormat {
 		case types.ConfigFormatSdc:
+			if targetName == "" {
+				return fmt.Errorf("required flag(s) \"target\" not set (needed to convert sdc format)")
+			}
+
+			fw := utils.NewFileWrapper(configurationFile)
+			configByte, err := fw.Bytes()
+			if err != nil {
+				return err
+			}
 
 			sdcC, err := LoadSDCConfigCR(configByte)
 			if err != nil {
@@ -77,16 +82,17 @@ var configLoadCmd = &cobra.Command{
 				return err
 			}
 		default:
-			// TODO:
-			// lc.SetFlags()
 			rawParam.SetName(intentName).SetPrio(priority)
-			// if data is comming from stdin, store it in data
 			if strings.TrimSpace(configurationFile) == "-" {
+				fw := utils.NewFileWrapper(configurationFile)
+				configByte, err := fw.Bytes()
+				if err != nil {
+					return err
+				}
 				rawParam.SetData(configByte)
 			}
 		}
 
-		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
 			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}

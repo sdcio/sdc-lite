@@ -77,18 +77,7 @@ func wrapInConfig(xmlDoc *etree.Document) {
 }
 
 func (o *ConfigShowXmlOutput) ToStruct(ctx context.Context) (any, error) {
-	xmlDoc, err := o.tree.ToXML(ctx, o.onlyNewOrUpdated, o.honorNamespace, o.operationWithNamespace, o.useOperationRemove)
-	if err != nil {
-		return nil, err
-	}
-	wrapInConfig(xmlDoc)
-	xmlString, err := xmlDoc.WriteToString()
-	if err != nil {
-		return nil, err
-	}
-	return struct {
-		Xml string `json:"xml"`
-	}{Xml: xmlString}, nil
+	return o.ToString(ctx)
 }
 func (o *ConfigShowXmlOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)

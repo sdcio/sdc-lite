@@ -7,11 +7,14 @@ import (
 type UpdateInsertFlagsRaw struct {
 	New          bool `json:"new" yaml:"new"`
 	Delete       bool `json:"delete" yaml:"delete"`
-	OnlyIntended bool `json:"only_intended" yaml:"only_intended"`
+	OnlyIntended bool `json:"only-intended" yaml:"only-intended"`
 }
 
 func (u *UpdateInsertFlagsRaw) UnRaw() *dsTypes.UpdateInsertFlags {
 	uif := dsTypes.NewUpdateInsertFlags()
+	if u == nil {
+		return uif
+	}
 	switch {
 	case u.New:
 		uif.SetNewFlag()

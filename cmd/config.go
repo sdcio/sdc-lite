@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/sdcio/sdc-lite/pkg/configdiff"
 	"github.com/sdcio/sdc-lite/pkg/configdiff/config"
 	log "github.com/sirupsen/logrus"
@@ -19,15 +21,21 @@ var configCmd = &cobra.Command{
 	Short:        "config based actions",
 	SilenceUsage: true,
 	Args:         cobra.ExactArgs(1),
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		optsP = append(optsP, config.WithSuccessfullSchemaLoad(), config.WithTargetName(targetName))
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if !rpcOutput && targetName == "" {
+			return fmt.Errorf("required flag(s) \"target\" not set")
+		}
+		if targetName != "" {
+			optsP = append(optsP, config.WithSuccessfullSchemaLoad(), config.WithTargetName(targetName))
+		}
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(configCmd)
 	EnableFlagAndDisableFileCompletion(configCmd)
-	err := AddTargetPersistentFlag(configCmd)
+	err := AddTargetOptionalForRpcFlag(configCmd)
 	if err != nil {
 		log.Error(err)
 	}

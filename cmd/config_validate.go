@@ -17,16 +17,15 @@ var configValidateCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
-
 		ctx := cmd.Context()
 
 		rawParam := &rawparams.ConfigValidateRaw{}
 
-		// if pipelineFile is set, then we need to generate just the pieline instruction equivalent of the actual command and exist
 		if rpcOutput {
 			return pipeline.PipelineAppendStep(os.Stdout, rawParam)
 		}
+
+		fmt.Fprintf(os.Stderr, "Target: %s\n", targetName)
 
 		opts := config.ConfigOpts{}
 		out, err := RunFromRaw(ctx, opts, optsP, true, rawParam)

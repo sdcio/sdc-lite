@@ -81,19 +81,33 @@ func (cvo *ConfigValidateOutput) WriteToJson(ctx context.Context, w io.Writer) e
 	return jenc.Encode(jVal)
 }
 
-func (cvo *ConfigValidateOutput) ToStruct(ctx context.Context) (any, error) {
+// ValidateResult holds structured YANG validation findings and rule-check counters.
+type ValidateResult struct {
+	Errors   []string          `json:"errors"`
+	Warnings []string          `json:"warnings"`
+	Stats    map[string]uint32 `json:"stats"`
+}
 
-	result := struct {
-		Errors   []string
-		Warnings []string
-		Stats    map[string]uint32
-	}{
-		Errors:   cvo.result.ErrorsStr(),
-		Warnings: cvo.result.WarningsStr(),
+func (cvo *ConfigValidateOutput) ToStruct(ctx context.Context) (any, error) {
+	errs := cvo.result.ErrorsStr()
+	if errs == nil {
+		errs = []string{}
+	}
+	warns := cvo.result.WarningsStr()
+	if warns == nil {
+		warns = []string{}
+	}
+	result := ValidateResult{
+		Errors:   errs,
+		Warnings: warns,
 		Stats:    map[string]uint32{},
 	}
-	for k, v := range cvo.stats.Counter {
-		result.Stats[k.String()] = *v
+	if cvo.stats != nil {
+		for k, v := range cvo.stats.Counter {
+			if v != nil {
+				result.Stats[k.String()] = *v
+			}
+		}
 	}
 
 	return result, nil

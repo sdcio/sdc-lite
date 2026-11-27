@@ -27,7 +27,7 @@ func (o *ConfigDiffOutput) ToStringDetails(ctx context.Context) (string, error) 
 	return o.ToString(ctx)
 }
 func (o *ConfigDiffOutput) ToStruct(_ context.Context) (any, error) {
-	return struct{ Diff string }{Diff: o.diff}, nil
+	return o.diff, nil
 }
 func (o *ConfigDiffOutput) WriteToJson(ctx context.Context, w io.Writer) error {
 	jenc := json.NewEncoder(w)

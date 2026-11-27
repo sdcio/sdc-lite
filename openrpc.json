@@ -1,0 +1,460 @@
+{
+  "openrpc": "1.2.6",
+  "info": {
+    "title": "SDC-Lite Pipeline JSON-RPC API",
+    "version": "1.0.0",
+    "description": "JSON-RPC 2.0 specification for sdc-lite pipeline Steps over newline-delimited JSON (file, stdin, or FIFO). Steps with an 'id' member are Requests and receive a Response; Steps without 'id' are Notifications and produce no Response. Successful Responses carry a self-describing result object {\"method\": \"<method>\", \"format\"?: \"<format>\", \"data\"?: <payload>}."
+  },
+  "methods": [
+    {
+      "name": "schema-load",
+      "summary": "Load a YANG Schema into the Workspace.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "file",
+          "description": "Path or HTTP(S) URL to the Schema YAML manifest. Either file or data is required.",
+          "required": false,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "data",
+          "description": "Base64-encoded Schema YAML manifest bytes (used when --schema-def - reads stdin).",
+          "required": false,
+          "schema": { "type": "string", "contentEncoding": "base64" }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/SchemaLoadResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" },
+        { "$ref": "#/components/errors/ServerError" }
+      ]
+    },
+    {
+      "name": "config-load",
+      "summary": "Load a named, prioritized Intent into the Workspace.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "name",
+          "description": "Intent name (for example 'running' or an overlay name).",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "prio",
+          "description": "Intent priority (lower numbers take higher precedence; 'running' uses 500).",
+          "required": false,
+          "schema": { "type": "integer", "format": "int32", "default": 500 }
+        },
+        {
+          "name": "flags",
+          "description": "Update/insert/delete behavior flags for the Intent.",
+          "required": false,
+          "schema": { "$ref": "#/components/schemas/UpdateInsertFlags" }
+        },
+        {
+          "name": "format",
+          "description": "Encoding format of the input configuration data.",
+          "required": true,
+          "schema": { "$ref": "#/components/schemas/LoadConfigFormat" }
+        },
+        {
+          "name": "base-path",
+          "description": "Optional XPath root under which the configuration data is rooted.",
+          "required": false,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "file",
+          "description": "Path or HTTP(S) URL to the configuration file. Either file or data is required.",
+          "required": false,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "data",
+          "description": "Base64-encoded configuration payload bytes.",
+          "required": false,
+          "schema": { "type": "string", "contentEncoding": "base64" }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/ConfigLoadResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" },
+        { "$ref": "#/components/errors/ServerError" }
+      ]
+    },
+    {
+      "name": "config-show",
+      "summary": "Render effective configuration from the Workspace.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "all",
+          "description": "Include all configuration (including running), not only new or updated Intent values.",
+          "required": false,
+          "schema": { "type": "boolean", "default": false }
+        },
+        {
+          "name": "path",
+          "description": "Optional XPath expression scoping the subtree to render.",
+          "required": false,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "format",
+          "description": "Rendered configuration format.",
+          "required": false,
+          "schema": { "$ref": "#/components/schemas/ShowConfigFormat" }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/ConfigShowResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" },
+        { "$ref": "#/components/errors/ServerError" }
+      ]
+    },
+    {
+      "name": "config-diff",
+      "summary": "Compute a diff between the running Intent and effective Workspace configuration.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "diff-type",
+          "description": "Diff layout style.",
+          "required": false,
+          "schema": { "$ref": "#/components/schemas/DiffType" }
+        },
+        {
+          "name": "format",
+          "description": "Configuration serialization format used to compute the diff.",
+          "required": false,
+          "schema": { "$ref": "#/components/schemas/ShowConfigFormat" }
+        },
+        {
+          "name": "context-lines",
+          "description": "Number of context lines in patch diffs.",
+          "required": false,
+          "schema": { "type": "integer", "default": 2 }
+        },
+        {
+          "name": "width",
+          "description": "Column width for side-by-side diffs.",
+          "required": false,
+          "schema": { "type": "integer" }
+        },
+        {
+          "name": "no-color",
+          "description": "Disable ANSI color escape sequences in the diff output.",
+          "required": false,
+          "schema": { "type": "boolean", "default": false }
+        },
+        {
+          "name": "no-show-header",
+          "description": "Omit the diff header.",
+          "required": false,
+          "schema": { "type": "boolean", "default": false }
+        },
+        {
+          "name": "path",
+          "description": "Optional XPath expression scoping the diff subtree.",
+          "required": false,
+          "schema": { "type": "string" }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/ConfigDiffResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" },
+        { "$ref": "#/components/errors/ServerError" }
+      ]
+    },
+    {
+      "name": "config-blame",
+      "summary": "Attribute effective Workspace configuration leaves to their owning Intents.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "include-defaults",
+          "description": "Include YANG schema default values in the blame tree.",
+          "required": false,
+          "schema": { "type": "boolean", "default": false }
+        },
+        {
+          "name": "path",
+          "description": "Optional XPath expression scoping the blame subtree.",
+          "required": false,
+          "schema": { "type": "string" }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/ConfigBlameResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" },
+        { "$ref": "#/components/errors/ServerError" }
+      ]
+    },
+    {
+      "name": "config-validate",
+      "summary": "Validate effective Workspace configuration against the loaded YANG Schema.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/ConfigValidateResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" },
+        { "$ref": "#/components/errors/ServerError" }
+      ]
+    },
+    {
+      "name": "pipeline-stop",
+      "summary": "Stop reading further Pipeline Steps cleanly (and persist if --persist was enabled).",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": { "$ref": "#/components/schemas/PipelineStopResult" }
+      },
+      "errors": [
+        { "$ref": "#/components/errors/InvalidParams" }
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "LoadConfigFormat": {
+        "type": "string",
+        "enum": ["json", "json_ietf", "yaml", "xml"]
+      },
+      "ShowConfigFormat": {
+        "type": "string",
+        "enum": ["json", "json_ietf", "yaml", "xml", "xpath"],
+        "default": "json"
+      },
+      "DiffType": {
+        "type": "string",
+        "enum": ["full", "patch", "side-by-side", "side-by-side-patch"],
+        "default": "patch"
+      },
+      "UpdateInsertFlags": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "new": { "type": "boolean", "default": false },
+          "delete": { "type": "boolean", "default": false },
+          "only-intended": { "type": "boolean", "default": false }
+        }
+      },
+      "SchemaLoadResult": {
+        "type": "object",
+        "required": ["method"],
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string", "const": "schema-load" }
+        }
+      },
+      "ConfigLoadResult": {
+        "type": "object",
+        "required": ["method"],
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string", "const": "config-load" }
+        }
+      },
+      "PipelineStopResult": {
+        "type": "object",
+        "required": ["method"],
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string", "const": "pipeline-stop" }
+        }
+      },
+      "ConfigShowResult": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["method", "format", "data"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "type": "string", "const": "config-show" },
+              "format": { "type": "string", "enum": ["json", "json_ietf"] },
+              "data": {
+                "description": "Rendered JSON or JSON-IETF configuration subtree (object, array, or scalar depending on path)."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["method", "format", "data"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "type": "string", "const": "config-show" },
+              "format": { "type": "string", "const": "xpath" },
+              "data": {
+                "type": "object",
+                "description": "Map of leaf XPath strings to leaf JSON values.",
+                "additionalProperties": true
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["method", "format", "data"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "type": "string", "const": "config-show" },
+              "format": { "type": "string", "enum": ["xml", "yaml"] },
+              "data": {
+                "type": "string",
+                "description": "Rendered XML or YAML configuration document."
+              }
+            }
+          }
+        ]
+      },
+      "ConfigDiffResult": {
+        "type": "object",
+        "required": ["method", "format", "data"],
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string", "const": "config-diff" },
+          "format": { "$ref": "#/components/schemas/ShowConfigFormat" },
+          "data": {
+            "type": "string",
+            "description": "Rendered diff text (empty string when there are no differences)."
+          }
+        }
+      },
+      "ConfigValidateResult": {
+        "type": "object",
+        "required": ["method", "data"],
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string", "const": "config-validate" },
+          "data": { "$ref": "#/components/schemas/ValidateData" }
+        }
+      },
+      "ValidateData": {
+        "type": "object",
+        "required": ["errors", "warnings", "stats"],
+        "additionalProperties": false,
+        "properties": {
+          "errors": { "type": "array", "items": { "type": "string" } },
+          "warnings": { "type": "array", "items": { "type": "string" } },
+          "stats": {
+            "type": "object",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          }
+        }
+      },
+      "ConfigBlameResult": {
+        "type": "object",
+        "required": ["method", "data"],
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string", "const": "config-blame" },
+          "data": { "$ref": "#/components/schemas/BlameTreeElement" }
+        }
+      },
+      "BlameTreeElement": {
+        "type": "object",
+        "description": "ProtoJSON representation of sdcpb.BlameTreeElement.",
+        "properties": {
+          "name": { "type": "string" },
+          "owner": { "type": "string" },
+          "value": { "$ref": "#/components/schemas/TypedValue" },
+          "deviationValue": { "$ref": "#/components/schemas/TypedValue" },
+          "keyName": { "type": "string" },
+          "childs": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BlameTreeElement" }
+          }
+        }
+      },
+      "TypedValue": {
+        "type": "object",
+        "description": "ProtoJSON representation of sdcpb.TypedValue.",
+        "properties": {
+          "timestamp": { "type": "string", "description": "uint64 encoded as decimal string per ProtoJSON." },
+          "stringVal": { "type": "string" },
+          "intVal": { "type": "string" },
+          "uintVal": { "type": "string" },
+          "boolVal": { "type": "boolean" },
+          "bytesVal": { "type": "string", "contentEncoding": "base64" },
+          "floatVal": { "type": "number" },
+          "decimalVal": {
+            "type": "object",
+            "properties": {
+              "digits": { "type": "string" },
+              "precision": { "type": "integer" }
+            }
+          },
+          "doubleVal": { "type": "number" },
+          "leaflistVal": { "type": "object", "additionalProperties": true },
+          "anyVal": { "type": "object", "additionalProperties": true },
+          "jsonVal": { "type": "string", "contentEncoding": "base64" },
+          "jsonIetfVal": { "type": "string", "contentEncoding": "base64" },
+          "asciiVal": { "type": "string" },
+          "protoBytes": { "type": "string", "contentEncoding": "base64" },
+          "emptyVal": { "type": "object" },
+          "identityrefVal": {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string" },
+              "prefix": { "type": "string" },
+              "module": { "type": "string" }
+            }
+          }
+        }
+      },
+      "ErrorData": {
+        "type": "object",
+        "properties": {
+          "method": { "type": "string" }
+        }
+      }
+    },
+    "errors": {
+      "ParseError": {
+        "code": -32700,
+        "message": "Invalid JSON received by the pipeline.",
+        "data": { "$ref": "#/components/schemas/ErrorData" }
+      },
+      "InvalidRequest": {
+        "code": -32600,
+        "message": "The JSON payload is not a valid JSON-RPC 2.0 Request or Notification object.",
+        "data": { "$ref": "#/components/schemas/ErrorData" }
+      },
+      "MethodNotFound": {
+        "code": -32601,
+        "message": "The requested Method does not exist.",
+        "data": { "$ref": "#/components/schemas/ErrorData" }
+      },
+      "InvalidParams": {
+        "code": -32602,
+        "message": "Invalid Method parameter(s).",
+        "data": { "$ref": "#/components/schemas/ErrorData" }
+      },
+      "ServerError": {
+        "code": -32000,
+        "message": "Workspace execution or persistence error.",
+        "data": { "$ref": "#/components/schemas/ErrorData" }
+      }
+    }
+  }
+}

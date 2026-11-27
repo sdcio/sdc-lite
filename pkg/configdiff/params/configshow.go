@@ -47,8 +47,12 @@ func (c *ConfigShowConfig) GetOutputFormat() types.ConfigFormat {
 	return c.outputFormat
 }
 
+func (c *ConfigShowConfig) ResultFormat() types.ConfigFormat {
+	return c.outputFormat
+}
+
 func (c *ConfigShowConfig) String() string {
-	return "show-config"
+	return types.CommandTypeConfigShow
 }
 
 func (c *ConfigShowConfig) Run(ctx context.Context, cde Executor) (interfaces.Output, error) {

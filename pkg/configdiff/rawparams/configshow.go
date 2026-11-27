@@ -45,7 +45,11 @@ func (c *ConfigShowConfigRaw) UnRaw() (executor.RunCommand, error) {
 		return nil, err
 	}
 
-	f, err := types.ParseConfigFormat(c.OutputFormat)
+	formatStr := c.OutputFormat
+	if formatStr == "" {
+		formatStr = types.ConfigFormatJson.String()
+	}
+	f, err := types.ParseConfigFormat(formatStr)
 	if err != nil {
 		return nil, err
 	}

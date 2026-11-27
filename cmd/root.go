@@ -38,14 +38,25 @@ func AddRpcOutputFlag(c *cobra.Command) error {
 }
 
 func AddTargetPersistentFlag(c *cobra.Command) error {
+	return addTargetFlag(c, true)
+}
+
+// AddTargetOptionalForRpcFlag registers --target (-t) with shell completion without Cobra's
+// unconditional required-flag check so --rpc can serialize Steps without a Target.
+func AddTargetOptionalForRpcFlag(c *cobra.Command) error {
+	return addTargetFlag(c, false)
+}
+
+func addTargetFlag(c *cobra.Command, required bool) error {
 	c.PersistentFlags().StringVarP(&targetName, "target", "t", "", "the target to use")
-	err := c.MarkPersistentFlagRequired("target")
-	if err != nil {
-		return err
+	if required {
+		if err := c.MarkPersistentFlagRequired("target"); err != nil {
+			return err
+		}
 	}
 
 	// Register autocompletion for the flag
-	err = c.RegisterFlagCompletionFunc("target", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	err := c.RegisterFlagCompletionFunc("target", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 
 		opts := config.ConfigOpts{}
 		c, err := config.NewConfigPersistent(opts, optsP)

@@ -1,6 +1,7 @@
 package rawparams
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/sdcio/sdc-lite/pkg/configdiff/commandregistry"
@@ -53,6 +54,9 @@ func (s *SchemaLoadConfigRaw) UnRaw() (executor.RunCommand, error) {
 
 	// if data does not contain data, read the file reference
 	if len(data) == 0 {
+		if strings.TrimSpace(s.File) == "" {
+			return nil, fmt.Errorf("no schema file or data provided")
+		}
 		fw := utils.NewFileWrapper(s.File)
 		data, err = fw.Bytes()
 		if err != nil {
